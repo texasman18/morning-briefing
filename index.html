@@ -334,6 +334,7 @@ async function fetchHistoricalDirect(ticker) {
 // ════════════════════════════════════════════════════
 // 뉴스 직접 fetch — Netlify news 함수 사용 (CORS 우회)
 // ════════════════════════════════════════════════════
+// 시장 뉴스: Yahoo Finance 검색어 기반
 async function fetchNewsDirect(query, count = 8) {
   try {
     const url = `/.netlify/functions/news?q=${encodeURIComponent(query)}&n=${count}`;
@@ -344,9 +345,15 @@ async function fetchNewsDirect(query, count = 8) {
   } catch(e) { return null; }
 }
 
-async function fetchCompanyNewsBatch(names) {
+// 보유 종목 뉴스: 티커 배치 (Yahoo Finance — stock.js와 동일 서버)
+async function fetchCompanyNewsBatch() {
   try {
-    const url = `/.netlify/functions/news?queries=${encodeURIComponent(names.join(','))}`;
+    // KR 전체 + US 주요 티커
+    const tickers = [
+      ...S.kr.map(x => x.t),
+      'NVDA'
+    ].join(',');
+    const url = `/.netlify/functions/news?tickers=${encodeURIComponent(tickers)}&n=1`;
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return null;
     const json = await res.json();
@@ -833,8 +840,7 @@ async function loadCompanyNews() {
   if (!ready) {
     // ── 웹 버전: Netlify news 함수로 최신 뉴스 배치 fetch ──
     try {
-      const names = [...S.kr.map(x => x.n), 'NVDA 엔비디아'];
-      const items = await fetchCompanyNewsBatch(names);
+      const items = await fetchCompanyNewsBatch();
       if (Array.isArray(items) && items.length) {
         el.innerHTML = renderNewsItems(items);
         return;
@@ -885,7 +891,7 @@ async function loadNews() {
   if (!ready) {
     // ── 웹 버전: Netlify news 함수로 최신 코스피 뉴스 ──
     try {
-      const items = await fetchNewsDirect('코스피 증시 시황 주식', 8);
+      const items = await fetchNewsDirect('^KS11 KOSPI Korea stock market', 8);
       if (Array.isArray(items) && items.length) {
         el.innerHTML = renderNewsItems(items);
         return;

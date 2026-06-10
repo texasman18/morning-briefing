@@ -1,28 +1,27 @@
-// Netlify 서버리스 함수 — Google News RSS로 최신 뉴스 가져오기
-// GET /.netlify/functions/news?q=코스피+증시&n=8         (단일 쿼리)
-// GET /.netlify/functions/news?queries=삼성전자,SK하이닉스  (종목별 배치)
+// Netlify 서버리스 함수 — Yahoo Finance 뉴스 API 사용 (stock.js와 동일 서버)
+// GET /.netlify/functions/news?tickers=005930.KS,000660.KS&n=1   (종목별 배치)
+// GET /.netlify/functions/news?q=KOSPI+market&n=8               (시장 뉴스)
 const https = require('https');
 
 exports.handler = async (event) => {
   const p       = event.queryStringParameters || {};
-  const queries = p.queries;            // 쉼표 구분 배치 모드
-  const q       = p.q;                  // 단일 쿼리
+  const tickers = p.tickers;  // 쉼표 구분 티커 배치 모드
+  const q       = p.q;        // 단일 검색어 모드
   const n       = Math.min(parseInt(p.n) || 8, 20);
 
-  if (!q && !queries) return respond(400, { error: 'q or queries required' });
+  if (!q && !tickers) return respond(400, { error: 'q or tickers required' });
 
   try {
-    if (queries) {
-      // ── 배치 모드: 종목별 1개씩 병렬 fetch ─────────────────
-      const list = queries.split(',').map(s => s.trim()).filter(Boolean).slice(0, 15);
-      const results = await Promise.all(list.map(name => fetchOne(name)));
-      const items = results.filter(Boolean);
-      // 최신순 정렬
+    if (tickers) {
+      // ── 배치: 티커별 1개씩 병렬 fetch ───────────────────────
+      const list = tickers.split(',').map(s => s.trim()).filter(Boolean).slice(0, 15);
+      const results = await Promise.all(list.map(t => fetchTickerNews(t, 1)));
+      const items = results.flat().filter(x => x && x.title);
       items.sort((a, b) => new Date(b.pubDate || 0) - new Date(a.pubDate || 0));
       return ok(JSON.stringify({ items }));
     } else {
-      // ── 단일 쿼리 모드 ────────────────────────────────────
-      const items = await fetchMany(q, n);
+      // ── 단일 검색어 ─────────────────────────────────────────
+      const items = await searchNews(q, n);
       return ok(JSON.stringify({ items }));
     }
   } catch(e) {
@@ -30,69 +29,56 @@ exports.handler = async (event) => {
   }
 };
 
-// 종목명으로 뉴스 1개 가져오기
-async function fetchOne(name) {
-  try {
-    const items = await fetchMany(name + ' 주식 뉴스', 1);
-    return items[0] || null;
-  } catch(e) { return null; }
-}
+// 티커로 뉴스 가져오기 (Yahoo Finance search API)
+async function fetchTickerNews(ticker, count) {
+  const path = `/v1/finance/search?q=${encodeURIComponent(ticker)}`
+    + `&newsCount=${count}&quotesCount=0`
+    + `&enableFuzzyQuery=false&enableNavLinks=false&enableCb=false`;
 
-// 쿼리로 최대 count개 뉴스 가져오기
-async function fetchMany(query, count) {
-  const path = `/rss/search?q=${encodeURIComponent(query)}&hl=ko&gl=KR&ceid=KR:ko`;
-  try {
-    const r = await httpsGet('news.google.com', path);
-    if (r.status !== 200) return [];
-    return parseRSS(r.body, count);
-  } catch(e) { return []; }
-}
-
-// RSS XML → JSON 배열 파싱
-function parseRSS(xml, count) {
-  const items = [];
-  const re = /<item>([\s\S]*?)<\/item>/g;
-  let m;
-
-  while ((m = re.exec(xml)) !== null && items.length < count) {
-    const block = m[1];
-    const rawTitle = getTag(block, 'title');
-    const link     = getTag(block, 'link') || getGuid(block);
-    const desc     = getTag(block, 'description');
-    const pubDate  = getTag(block, 'pubDate');
-
-    // Google News: "제목 - 출처명" 형식에서 출처 제거
-    const title = html2text(rawTitle).replace(/ - [^-]+$/, '').trim();
-
-    if (!title) continue;
-
-    items.push({
-      title,
-      link:        (link || '').trim(),
-      description: html2text(desc),
-      pubDate:     (pubDate || '').trim()
-    });
+  for (const host of ['query1.finance.yahoo.com', 'query2.finance.yahoo.com']) {
+    try {
+      const r = await yhFetch(host, path);
+      if (r.status === 200) {
+        const json = JSON.parse(r.body);
+        const news = json?.news || [];
+        return news.slice(0, count).map(itemToObj);
+      }
+    } catch(e) { /* 다음 host */ }
   }
-  return items;
+  return [];
 }
 
-// XML 태그 추출 (CDATA 포함)
-function getTag(str, tag) {
-  const re = new RegExp(
-    `<${tag}(?:\\s[^>]*)?>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, 'i'
-  );
-  const m = str.match(re);
-  return m ? m[1].trim() : '';
+// 검색어로 뉴스 가져오기
+async function searchNews(query, count) {
+  const path = `/v1/finance/search?q=${encodeURIComponent(query)}`
+    + `&newsCount=${count}&quotesCount=0`
+    + `&enableFuzzyQuery=true&enableNavLinks=false&enableCb=false`;
+
+  for (const host of ['query1.finance.yahoo.com', 'query2.finance.yahoo.com']) {
+    try {
+      const r = await yhFetch(host, path);
+      if (r.status === 200) {
+        const json = JSON.parse(r.body);
+        const news = json?.news || [];
+        return news.slice(0, count).map(itemToObj);
+      }
+    } catch(e) { /* 다음 host */ }
+  }
+  return [];
 }
 
-// <guid> 태그 추출
-function getGuid(str) {
-  const m = str.match(/<guid[^>]*>([\s\S]*?)<\/guid>/i);
-  return m ? m[1].trim() : '';
+function itemToObj(n) {
+  return {
+    title:       clean(n.title || ''),
+    link:        n.link || '',
+    description: clean(n.summary || n.description || ''),
+    pubDate:     n.providerPublishTime
+      ? new Date(n.providerPublishTime * 1000).toUTCString()
+      : (n.pubDate || '')
+  };
 }
 
-// HTML 엔티티 / 태그 제거
-function html2text(str) {
+function clean(str) {
   return (str || '')
     .replace(/<[^>]+>/g, '')
     .replace(/&amp;/g,  '&')
@@ -100,13 +86,11 @@ function html2text(str) {
     .replace(/&gt;/g,   '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g,  "'")
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&#\d+;/g, '')
     .trim();
 }
 
-// HTTPS GET 헬퍼
-function httpsGet(host, path) {
+// Yahoo Finance용 HTTPS GET (stock.js와 동일한 헤더)
+function yhFetch(host, path) {
   return new Promise((resolve, reject) => {
     const req = https.request(
       {
@@ -114,9 +98,13 @@ function httpsGet(host, path) {
         path,
         method: 'GET',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; newsbot/1.0)',
-          'Accept': 'text/xml,application/rss+xml,*/*',
-          'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.8'
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ' +
+            'AppleWebKit/537.36 (KHTML, like Gecko) ' +
+            'Chrome/124.0.0.0 Safari/537.36',
+          'Accept': 'application/json',
+          'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.8',
+          'Cache-Control': 'no-cache'
         }
       },
       res => {
