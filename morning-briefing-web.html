@@ -332,12 +332,12 @@ async function fetchHistoricalDirect(ticker) {
 }
 
 // ════════════════════════════════════════════════════
-// 뉴스 fetch — Netlify naver-news 함수 (한국어, CORS 우회)
+// 뉴스 fetch — Netlify news 함수 (네이버 Search API, 한국어)
 // ════════════════════════════════════════════════════
 // 시장 뉴스: 네이버 단일 쿼리
 async function fetchNaverNews(query, count = 8) {
   try {
-    const url = `/.netlify/functions/naver-news?q=${encodeURIComponent(query)}&n=${count}`;
+    const url = `/.netlify/functions/news?q=${encodeURIComponent(query)}&n=${count}`;
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return null;
     const json = await res.json();
@@ -352,7 +352,7 @@ async function fetchNaverNewsBatch() {
       ...S.kr.map(x => x.n),
       ...S.us.map(x => x.n)
     ].join(',');
-    const url = `/.netlify/functions/naver-news?names=${encodeURIComponent(names)}&n=1`;
+    const url = `/.netlify/functions/news?names=${encodeURIComponent(names)}&n=1`;
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return null;
     const json = await res.json();
