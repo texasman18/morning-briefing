@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>모닝 브리핑</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root{color-scheme:light}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:13px;padding-bottom:40px}
+/* Header */
+.hdr{background:linear-gradient(135deg,#0f172a,#1e3a5f);color:#fff;padding:16px 14px;display:flex;align-items:center;justify-content:space-between}
+.hdr h1{font-size:17px;font-weight:800;letter-spacing:-.01em}
+.hdr .sub{font-size:10px;color:rgba(255,255,255,.5);margin-top:3px}
+.rbtn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:11px;padding:5px 13px;border-radius:20px;cursor:pointer;font-weight:600;transition:background .15s}
+.rbtn:hover{background:rgba(255,255,255,.2)}
+.rbtn:disabled{opacity:.4;cursor:default}
+/* Sections */
+.sec{margin:12px 12px 0}
+.sec-ttl{font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}
+/* Overview — 4 columns */
+.ov-wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+@media(max-width:560px){.ov-wrap{grid-template-columns:repeat(2,1fr)}}
+.ov-card{background:#fff;border-radius:12px;padding:12px 13px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.ov-lbl{font-size:9px;color:#9ca3af;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.ov-val{font-size:15px;font-weight:800;color:#111827;line-height:1}
+.ov-sub{font-size:10px;color:#6b7280;margin-top:4px;font-weight:500}
+/* Index */
+.idx-wrap{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+@media(max-width:520px){.idx-wrap{grid-template-columns:repeat(3,1fr)}}
+.idx-card{background:#fff;border-radius:12px;padding:11px 8px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.07);min-height:66px;display:flex;flex-direction:column;justify-content:center}
+.idx-nm{font-size:10px;color:#6b7280;font-weight:600;margin-bottom:4px}
+.idx-px{font-size:13px;font-weight:800;color:#111827}
+.idx-ch{font-size:10px;font-weight:700;margin-top:3px}
+/* Stock cards */
+.sk-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(138px,1fr));gap:8px}
+.sk-card{background:#fff;border-radius:12px;padding:11px;box-shadow:0 1px 3px rgba(0,0,0,.07);border:2px solid transparent;user-select:none;position:relative;overflow:hidden}
+.sk-card.clickable{cursor:pointer;transition:transform .12s,box-shadow .12s}
+.sk-card.clickable:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(0,0,0,.12)}
+.sk-card.active{border-color:#3b82f6!important;box-shadow:0 0 0 3px rgba(59,130,246,.15)!important}
+/* 국기 배경 — 카드 전체 덮기 */
+.flag-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:4.5rem;opacity:0.07;pointer-events:none;line-height:1;user-select:none;z-index:0}
+.sk-tic,.sk-nm,.sk-px,.sk-ch{position:relative;z-index:1}
+/* 실시간 뱃지 */
+.live-dot{position:absolute;top:6px;right:7px;width:6px;height:6px;border-radius:50%;z-index:2}
+.live-dot.live{background:#16a34a;box-shadow:0 0 4px rgba(22,163,74,.6)}
+.live-dot.seed{background:#d1d5db}
+.sk-tic{font-size:10px;color:#9ca3af;font-weight:600;margin-bottom:2px}
+.sk-nm{font-size:12px;font-weight:700;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px}
+.sk-px{font-size:14px;font-weight:800;color:#111827}
+.sk-ch{font-size:11px;font-weight:700;margin-top:2px}
+/* Korean color convention: up=red, down=blue */
+.up{color:#dc2626}.down{color:#2563eb}.flat{color:#6b7280}
+/* US: up=green, down=red — applied via .us-up / .us-dn */
+.us-up{color:#16a34a}.us-dn{color:#dc2626}
+/* Chart */
+.ch-box{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.07);display:none}
+.ch-box.on{display:block}
+.ch-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.ch-ttl{font-size:13px;font-weight:800;color:#111827}
+.ch-cls{background:none;border:1px solid #e5e7eb;border-radius:6px;padding:3px 9px;font-size:11px;color:#6b7280;cursor:pointer}
+/* Disc / News */
+.list-box{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.07);overflow:hidden}
+.d-row{display:flex;align-items:flex-start;gap:9px;padding:10px 13px;border-bottom:1px solid #f3f4f6}
+.d-row:last-child{border-bottom:none}
+.d-corp{font-size:11px;font-weight:700;color:#1d4ed8;min-width:80px;flex-shrink:0}
+.d-rpt{font-size:12px;color:#374151;flex:1;line-height:1.4}
+.d-dt{font-size:10px;color:#9ca3af;white-space:nowrap;margin-top:1px}
+.n-row{padding:10px 13px;border-bottom:1px solid #f3f4f6}
+.n-row:last-child{border-bottom:none}
+.n-ttl{font-size:13px;font-weight:700;color:#111827;line-height:1.4;margin-bottom:3px;display:block;text-decoration:none}
+.n-ttl:hover{color:#1d4ed8;text-decoration:underline}
+.n-dsc{font-size:12px;color:#6b7280;line-height:1.5}
+.n-dt{font-size:10px;color:#9ca3af;margin-top:3px}
+.empty{padding:14px;color:#9ca3af;font-size:12px;text-align:center}
+.loading-row{padding:12px 14px;color:#9ca3af;font-size:12px;display:flex;align-items:center;gap:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid #e5e7eb;border-top-color:#3b82f6;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+#statusBar{font-size:10px;color:#9ca3af;text-align:center;padding:8px;margin-top:12px}
+/* Progress bar */
+.rf-prog{background:linear-gradient(135deg,#0f172a,#1e3a5f);padding:10px 14px;display:none}
+.rf-prog.on{display:block}
+.rf-prog-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.rf-prog-lbl{font-size:11px;color:rgba(255,255,255,.65);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:72%}
+.rf-prog-pct{font-size:14px;font-weight:800;color:#60a5fa;letter-spacing:-.01em;flex-shrink:0}
+.rf-prog-track{height:7px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden}
+.rf-prog-bar{height:100%;width:0%;border-radius:4px;background:linear-gradient(90deg,#3b82f6,#38bdf8);transition:width .35s cubic-bezier(.4,0,.2,1)}
+.rf-prog-bar.done{background:linear-gradient(90deg,#16a34a,#4ade80)}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <h1>📈 모닝 브리핑</h1>
+    <div class="sub" id="hdrSub">2026.05.05 장 마감 기준</div>
+  </div>
+  <button class="rbtn" id="rfBtn" onclick="doRefresh()">↻ 새로고침</button>
+</div>
+
+<!-- 웹 버전 안내 배너 -->
+<div style="background:#dbeafe;border-bottom:1px solid #93c5fd;color:#1e40af;font-size:11px;text-align:center;padding:7px 14px;line-height:1.5">
+  📡 <strong>웹 버전</strong> — 새로고침 버튼으로 <strong>주가 &amp; 뉴스 모두 실시간 업데이트</strong> (Google News RSS 기반)
+</div>
+
+<!-- 새로고침 진행 바 -->
+<div class="rf-prog" id="rfProg">
+  <div class="rf-prog-top">
+    <div class="rf-prog-lbl" id="rfProgLbl">데이터 불러오는 중…</div>
+    <div class="rf-prog-pct" id="rfProgPct">0%</div>
+  </div>
+  <div class="rf-prog-track">
+    <div class="rf-prog-bar" id="rfProgBar"></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-ttl">시장 개요</div>
+  <div class="ov-wrap">
+    <div class="ov-card">
+      <div class="ov-lbl">USD/KRW</div>
+      <div class="ov-val" id="ovFx">₩1,472.91</div>
+      <div class="ov-sub down" id="ovFxSub">-2.40 (-0.16%)</div>
+    </div>
+    <div class="ov-card">
+      <div class="ov-lbl">JPY/KRW <small style="font-size:8px;color:#d1d5db;text-transform:none">(100엔)</small></div>
+      <div class="ov-val" id="ovJpy">₩932.80</div>
+      <div class="ov-sub down" id="ovJpySub">-3.50 (-0.37%)</div>
+    </div>
+    <div class="ov-card">
+      <div class="ov-lbl">기준일</div>
+      <div class="ov-val" id="ovDate" style="font-size:13px;line-height:1.4">5월 5일 (화)</div>
+      <div class="ov-sub" id="ovTime">장 마감 기준</div>
+    </div>
+    <div class="ov-card">
+      <div class="ov-lbl">시장 분위기</div>
+      <div class="ov-val up" id="ovMood" style="font-size:14px">🔥 강세장</div>
+      <div class="ov-sub up" id="ovMoodSub">KOSPI +5.12%</div>
+    </div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-ttl">주요 지수</div>
+  <div class="idx-wrap" id="idxWrap"></div>
+</div>
+
+<div class="sec">
+  <div class="sec-ttl">국내 종목 <span style="font-size:10px;color:#9ca3af;font-weight:400;text-transform:none;letter-spacing:0">· 종목 클릭 → 30일 차트</span></div>
+  <div class="sk-wrap" id="krWrap"></div>
+</div>
+
+<div class="sec">
+  <div class="sec-ttl">미국 종목 <span style="font-size:10px;color:#9ca3af;font-weight:400;text-transform:none;letter-spacing:0">· 종목 클릭 → 30일 차트</span></div>
+  <div class="sk-wrap" id="usWrap"></div>
+</div>
+
+<div class="sec">
+  <div class="ch-box" id="chBox">
+    <div class="ch-hdr">
+      <div class="ch-ttl" id="chTtl">삼성전자 30일 가격 추이</div>
+      <button class="ch-cls" onclick="closeChart()">✕ 닫기</button>
+    </div>
+    <canvas id="chCanvas" height="160"></canvas>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-ttl">보유 종목 뉴스</div>
+  <div class="list-box" id="discWrap">
+    <div class="loading-row"><span class="spin"></span>불러오는 중…</div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-ttl">코스피 시장 뉴스</div>
+  <div class="list-box" id="newsWrap">
+    <div class="loading-row"><span class="spin"></span>불러오는 중…</div>
+  </div>
+</div>
+
+<div id="statusBar">2026.05.05 장 마감 기준 시드 데이터 · 실시간 업데이트는 Claude Cowork 앱에서 가능</div>
+
+<script>
+// ════════════════════════════════════════════════════
+// SEED DATA — 2026-05-05 장 마감 기준
+// ════════════════════════════════════════════════════
+const SEED = {
+  usd: { p:1472.91, c:-2.40,   r:-0.16 },
+  jpy: { p:9.328,   c:-0.035,  r:-0.37 },  // 1엔당 KRW (화면엔 100엔으로 표시)
+  idx: [
+    { t:'^KS11',  n:'KOSPI',   p:6936.99,  c:338.12,   r:5.12,  krw:true  },
+    { t:'^KQ11',  n:'KOSDAQ',  p:1213.74,  c:21.39,    r:1.79,  krw:true  },
+    { t:'^GSPC',  n:'S&P 500', p:7200.75,  c:-29.37,   r:-0.41, krw:false },
+    { t:'^IXIC',  n:'NASDAQ',  p:25067.8,  c:-46.64,   r:-0.19, krw:false },
+    { t:'^DJI',   n:'다우존스', p:48941.9,  c:-557.37,  r:-1.13, krw:false }
+  ],
+  kr: [
+    { t:'005930.KS', n:'삼성전자',          p:232500,  c:12000,  r:5.44  },
+    { t:'000660.KS', n:'SK하이닉스',        p:1447000, c:161000, r:12.52 },
+    { t:'005380.KS', n:'현대차',            p:539000,  c:8000,   r:1.51  },
+    { t:'034020.KS', n:'두산에너빌리티',    p:127200,  c:100,    r:0.08  },
+    { t:'006800.KS', n:'미래에셋증권',          p:66900,  c:1500,  r:2.29  },
+    { t:'0193T0.KS', n:'KODEX 하이닉스레버리지', p:10000, c:0,     r:0.00  },
+    { t:'274090.KQ', n:'켄코아에어로스페이스',   p:23800,  c:300,   r:1.28  },
+    { t:'229200.KS', n:'KODEX 코스닥150',       p:20175,  c:320,   r:1.61  },
+    { t:'091230.KS', n:'KODEX AI반도체',    p:136155,  c:6495,   r:5.01  },
+    { t:'490090.KS', n:'KODEX 미국우주항공',p:16220,   c:0,      r:0.00  }
+  ],
+  us: [
+    { t:'NVDA', n:'NVDA',  p:198.48, c:0.03,  r:0.02  },
+    { t:'JEPQ', n:'JEPQ',  p:58.83,  c:-0.03, r:-0.05 },
+    { t:'QQQM', n:'QQQM',  p:277.05, c:-0.49, r:-0.18 },
+    { t:'SCHG', n:'SCHG',  p:33.08,  c:-0.06, r:-0.18 },
+    { t:'SPHD', n:'SPHD',  p:49.69,  c:-0.41, r:-0.82 },
+    { t:'SOXL', n:'SOXL',  p:127.55, c:-2.85, r:-2.19 },
+    { t:'TQQQ', n:'TQQQ',  p:64.91,  c:-0.39, r:-0.60 },
+    { t:'SOXX', n:'SOXX',  p:462.06, c:-3.69, r:-0.79 },
+    { t:'SPY',  n:'SPY',   p:718.01, c:-2.64, r:-0.37 },
+    { t:'RONB', n:'RONB',  p:23.89,  c:-0.03, r:-0.11 }
+  ]
+};
+
+// ════════════════════════════════════════════════════
+// CHART SEEDS — 30일 가격 데이터 (2026-04-05 ~ 2026-05-04)
+// 오프라인에서도 항상 차트가 표시되도록 사전 내장
+// ════════════════════════════════════════════════════
+const KR_L = ["4/5","4/6","4/7","4/8","4/9","4/12","4/13","4/14","4/15","4/16","4/19","4/20","4/21","4/22","4/23","4/26","4/27","4/28","4/29","5/3"];
+const US_L = ["4/6","4/7","4/8","4/9","4/10","4/13","4/14","4/15","4/16","4/17","4/20","4/21","4/22","4/23","4/24","4/27","4/28","4/29","4/30","5/1","5/4"];
+const CHART_SEEDS = {
+  '005930.KS': { labels:KR_L, vals:[193100,196500,210500,204000,206000,201000,206500,211000,217500,216000,214500,219000,217500,224500,219500,224500,222000,226000,220500,232500], krw:true },
+  '000660.KS': { labels:KR_L, vals:[886000,916000,1033000,998000,1027000,1040000,1103000,1136000,1155000,1128000,1166000,1224000,1223000,1225000,1222000,1292000,1300000,1293000,1286000,1447000], krw:true },
+  '005380.KS': { labels:KR_L, vals:[469000,473000,508000,489500,489500,478500,491500,508000,534000,538000,527000,546000,541000,532000,513000,524000,555000,556000,531000,539000], krw:true },
+  '034020.KS': { labels:KR_L, vals:[95700,94900,101200,100000,100200,99300,99700,104200,110800,108500,111000,115700,115900,122600,127100,128900,127800,129200,127100,127200], krw:true },
+  '006800.KS': { labels:KR_L, vals:[55000,56000,58000,57000,57500,56500,58000,59500,61000,62000,61500,63000,64000,65000,64500,65500,66000,66500,65500,66900], krw:true },
+  '274090.KQ': { labels:KR_L, vals:[19500,19800,20500,20200,20000,20300,21000,21500,22000,22300,22500,23000,23800,23500,24000,23700,24200,24500,24000,23800], krw:true },
+  '0193T0.KS': { labels:KR_L, vals:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null], krw:true },
+  '229200.KS': { labels:KR_L, vals:[17791,17721,18684,18390,18550,18515,18699,19388,19523,19523,19673,19873,19843,19688,20267,20642,20387,20490,19855,20175], krw:true },
+  '091230.KS': { labels:KR_L, vals:[98193,99560,108836,106894,107992,108411,110573,114332,116099,116503,117921,121805,122454,122938,125674,131020,131659,131500,129660,136155], krw:true },
+  '490090.KS': { labels:KR_L, vals:[14265,14230,14565,14505,14730,14830,15070,15335,15755,15700,15760,15785,15825,16000,15980,16165,16200,16245,16220,16220], krw:true },
+  'NVDA': { labels:US_L, vals:[177.64,178.10,182.08,183.91,188.63,189.31,196.51,198.87,198.35,201.68,202.06,199.88,202.50,199.64,208.27,216.61,213.17,209.25,199.57,198.45,198.48], krw:false },
+  'JEPQ': { labels:US_L, vals:[55.36,55.36,56.53,56.94,57.05,57.40,57.80,57.90,57.95,58.08,58.08,58.06,58.30,58.24,58.40,58.45,58.34,58.41,58.68,58.86,58.83], krw:false },
+  'QQQM': { labels:US_L, vals:[242.32,242.38,249.54,251.23,251.60,254.17,258.78,262.48,263.69,267.13,266.30,265.31,269.63,268.22,273.38,273.51,270.76,272.39,274.90,277.54,277.05], krw:false },
+  'SCHG': { labels:US_L, vals:[29.54,29.63,30.35,30.45,30.51,30.95,31.51,32.09,32.13,32.62,32.54,32.33,32.85,32.44,32.92,33.01,32.77,32.70,32.91,33.14,33.08], krw:false },
+  'SPHD': { labels:US_L, vals:[49.54,49.34,49.62,49.74,49.40,49.22,49.25,49.13,49.57,49.92,49.87,49.42,49.29,49.74,49.34,49.23,49.69,49.43,50.41,50.10,49.69], krw:false },
+  'SOXL': { labels:US_L, vals:[54.81,56.55,67.50,71.98,76.39,80.56,85.31,85.96,88.37,94.68,95.94,98.09,105.64,112.77,128.32,123.39,109.56,117.97,126.98,130.40,127.55], krw:false },
+  'TQQQ': { labels:US_L, vals:[44.10,44.15,48.00,48.96,49.17,50.66,53.41,55.65,56.43,58.59,58.08,57.40,60.21,59.22,62.56,62.64,60.74,61.86,63.54,65.30,64.91], krw:false },
+  'SOXX': { labels:US_L, vals:[344.10,347.76,370.40,378.63,386.60,393.34,401.24,401.86,405.95,415.71,417.55,420.70,431.77,441.00,461.60,455.41,438.71,449.99,461.44,465.75,462.06], krw:false },
+  'SPY':  { labels:US_L, vals:[658.93,659.22,676.01,679.91,679.46,686.10,694.46,699.94,701.66,710.14,708.72,704.08,711.21,708.45,713.94,715.17,711.69,711.58,718.66,720.65,718.01], krw:false },
+  'RONB': { labels:US_L, vals:[22.30,22.55,22.80,23.00,23.20,23.35,23.50,23.65,23.80,23.95,24.10,24.25,24.40,24.55,24.70,24.55,24.40,24.25,24.10,24.00,23.89], krw:false }
+};
+
+// ════════════════════════════════════════════════════
+// STATE — 시드 복사본, 새로고침 시 업데이트됨
+// ════════════════════════════════════════════════════
+const S = {
+  usd:  {...SEED.usd},
+  jpy:  {...SEED.jpy},
+  idx:  SEED.idx.map(x=>({...x})),
+  kr:   SEED.kr.map(x=>({...x})),
+  us:   SEED.us.map(x=>({...x})),
+  live: false,
+  activeTicker: null,  // 현재 차트에 표시 중인 티커
+  activeName: null
+};
+
+// ════════════════════════════════════════════════════
+// TOOL IDs
+// ════════════════════════════════════════════════════
+const NS = 'mcp__daf93eac-b5ca-44ee-a13c-eab683c94f2c__';
+const T_STOCK = NS + 'UsStockInfo-get_stock_info';
+const T_HIST  = NS + 'UsStockInfo-get_historical_stock_prices';
+const T_DART  = NS + 'opendart-search_disclosures';
+const T_NEWS  = NS + 'NaverSearch-search_news';
+
+// ════════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════════
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const $ = id => document.getElementById(id);
+const setStatus = msg => { $('statusBar').textContent = msg; };
+
+// 웹 독립 실행 버전: Cowork API 폴링 없이 즉시 확인 (대기 없음)
+async function whenCowork(maxMs = 10000) {
+  return !!(window.cowork && typeof window.cowork.callMcpTool === 'function');
+}
+
+// ════════════════════════════════════════════════════
+// 직접 야후파이낸스 API — Netlify 서버리스 함수를 통해 서버에서 호출
+// 브라우저 CORS 문제 완전 우회 (/.netlify/functions/stock)
+// ════════════════════════════════════════════════════
+async function fetchStockDirect(ticker) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await sleep(1500);
+    try {
+      const url = `/.netlify/functions/stock?ticker=${encodeURIComponent(ticker)}&range=1d&interval=1d`;
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) continue;
+      const json = await res.json();
+      const result = json?.chart?.result?.[0];
+      if (!result) continue;
+      const meta = result.meta;
+      const rawP = meta.regularMarketPrice ?? meta.previousClose;
+      if (rawP == null) continue;
+      const prev = meta.chartPreviousClose ?? meta.previousClose ?? rawP;
+      const chg = rawP - prev;
+      const pct = prev ? (chg / prev) * 100 : 0;
+      return { p: rawP, c: chg, r: pct };
+    } catch(e) { /* retry */ }
+  }
+  return null;
+}
+
+async function fetchHistoricalDirect(ticker) {
+  try {
+    const url = `/.netlify/functions/stock?ticker=${encodeURIComponent(ticker)}&range=1mo&interval=1d`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const result = json?.chart?.result?.[0];
+    if (!result) return null;
+    const timestamps = result.timestamp || [];
+    const closes = result.indicators?.quote?.[0]?.close || [];
+    if (!timestamps.length) return null;
+    const labels = timestamps.map(ts => {
+      const d = new Date(ts * 1000);
+      return (d.getMonth() + 1) + '/' + d.getDate();
+    });
+    return { labels, vals: closes };
+  } catch(e) { return null; }
+}
+
+// ════════════════════════════════════════════════════
+// 뉴스 fetch — Netlify naver-news 함수 (한국어, CORS 우회)
+// ════════════════════════════════════════════════════
+// 시장 뉴스: 네이버 단일 쿼리
+async function fetchNaverNews(query, count = 8) {
+  try {
+    const url = `/.netlify/functions/naver-news?q=${encodeURIComponent(query)}&n=${count}`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json?.items || null;
+  } catch(e) { return null; }
+}
+
+// 보유 종목 뉴스: 종목명 배치 (네이버 — 종목별 최신 1개씩)
+async function fetchNaverNewsBatch() {
+  try {
+    const names = [
+      ...S.kr.map(x => x.n),
+      ...S.us.map(x => x.n)
+    ].join(',');
+    const url = `/.netlify/functions/naver-news?names=${encodeURIComponent(names)}&n=1`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json?.items || null;
+  } catch(e) { return null; }
+}
+
+// Cowork 우선, 없으면 직접 Yahoo Finance
+async function getStockData(ticker) {
+  if (window.cowork && typeof window.cowork.callMcpTool === 'function') {
+    return await fetchStock(ticker);
+  }
+  return await fetchStockDirect(ticker);
+}
+
+// ════════════════════════════════════════════════════
+// SEED 종목 뉴스 (2026-05-04~05 기준, 보유 종목별 뉴스)
+// ════════════════════════════════════════════════════
+const SEED_COMPANY_NEWS = [
+  { title:'삼성전자, 2분기 반도체 흑자전환 기대감에 주가 급등', link:'https://n.news.naver.com/mnews/article/422/0000861403', description:'HBM 수출 재개 소식과 함께 삼성전자 주가가 5% 이상 상승. 목표주가 상향 보고서도 잇따라.', pubDate:'Mon, 04 May 2026 17:22:00 +0900' },
+  { title:'SK하이닉스, HBM4 양산 개시…엔비디아 납품 물량 확대', link:'https://www.news2day.co.kr/article/20260504500162', description:'SK하이닉스가 HBM4 양산을 시작하며 엔비디아 공급 확대가 확정됐다. 시총 1000조 돌파.', pubDate:'Mon, 04 May 2026 16:30:00 +0900' },
+  { title:'현대차, 美 관세 불구 1분기 영업이익 시장 예상 상회', link:'https://www.ekn.kr/web/view.php?key=20260504029492028', description:'현대차가 미국 관세 부담에도 불구하고 1분기 영업이익이 시장 예상을 웃돌았다.', pubDate:'Mon, 04 May 2026 14:00:00 +0900' },
+  { title:'두산에너빌리티, 체코 원전 추가 수주 논의 진행 중', link:'https://www.tokenpost.kr/news/market/356296', description:'체코 원전 프로젝트 추가 수주 논의가 진행되며 두산에너빌리티 주가 강세 지속.', pubDate:'Mon, 04 May 2026 13:30:00 +0900' },
+  { title:'미래에셋증권, 증시 활황에 1분기 브로커리지 수익 급증', link:'https://www.newspim.com/news/view/20260504001184', description:'코스피 상승 지속으로 미래에셋증권 브로커리지 수익이 전년 대비 크게 늘었다.', pubDate:'Mon, 04 May 2026 12:00:00 +0900' },
+  { title:'켄코아에어로스페이스, 글로벌 항공사 부품 공급 계약 체결', link:'https://alphasquare.co.kr/home/stock-summary?code=274090', description:'켄코아에어로스페이스가 글로벌 항공사와 신규 부품 공급 계약 체결, 주가 상승세.', pubDate:'Mon, 04 May 2026 11:00:00 +0900' },
+  { title:'TIGER 미국우주테크 ETF, 상장 3주만에 순자산 5700억 돌파', link:'https://unjena.com/1635', description:'스페이스X·로켓랩 등 뉴스페이스 핵심 기업에 집중 투자하는 ETF가 빠르게 자금을 모았다.', pubDate:'Mon, 04 May 2026 10:00:00 +0900' },
+  { title:'엔비디아, AI 수요 폭발에 분기 매출 또 최고치 경신', link:'https://www.investing.com/equities/nvidia-corp', description:'엔비디아가 AI 칩 수요 급증으로 분기 매출 최고치를 또 다시 경신했다.', pubDate:'Mon, 04 May 2026 09:00:00 +0900' }
+];
+const SEED_NEWS = [
+  { title:'[국내증시 개장시황] 국내 증시 상승세 출발, 코스피·코스닥 강세', link:'https://www.tokenpost.kr/news/market/356296',        description:'코스피지수는 전일대비 338.12포인트(5.12%) 상승한 6,936.99에 거래되고 있다.', pubDate:'Tue, 05 May 2026 09:32:00 +0900' },
+  { title:'[ETF 시황] 코스피 급등에 레버리지 ETF 폭등…인버스는 줄줄이 급락',    link:'https://www.newspim.com/news/view/20260504001184',    description:'코스피 급등 영향으로 레버리지 상품이 강세를 보였다. 코스피가 338.12포인트 상승하며 6936.99로 마감.', pubDate:'Mon, 04 May 2026 17:28:00 +0900' },
+  { title:'[퇴근길머니] 코스피 또 사상 최고치…삼성전자 목표가 설왕설래',       link:'https://n.news.naver.com/mnews/article/422/0000861403', description:'오늘 국내 증시는 말 그대로 폭등 장세였습니다. 코스피가 5% 넘게 급등하면서 사상 처음으로 6,900선을 넘어 장을 마쳤습니다.', pubDate:'Mon, 04 May 2026 17:22:00 +0900' },
+  { title:'[마감시황] 어린이날 선물?…코스피, 반도체 불기둥에 6900 돌파',       link:'http://www.hansbiz.co.kr/news/articleView.html?idxno=836854', description:'반도체주 급등과 외국인 대규모 매수세가 맞물리며 코스피는 전장보다 338.12포인트(5.12%) 상승했다.', pubDate:'Mon, 04 May 2026 17:14:00 +0900' },
+  { title:'코스피·코스닥 동반 강세… 7천피 눈앞, 외인·기관 쌍끌이 매수',       link:'https://www.ekn.kr/web/view.php?key=20260504029492028',  description:'코스피가 사상 처음으로 6900선을 넘어서며 7천피 돌파를 코앞에 뒀다. 지난 주말 뉴욕 증시 대폭 상승이 영향.', pubDate:'Mon, 04 May 2026 16:32:00 +0900' },
+  { title:'(마감시황) 파죽지세 코스피 6,900선 돌파…SK하이닉스 시총 1000조', link:'https://www.news2day.co.kr/article/20260504500162',     description:'SK하이닉스 144만원 돌파. 외국인 계좌에 기대감 높아. 원·달러 환율도 안정세.', pubDate:'Mon, 04 May 2026 16:30:00 +0900' },
+  { title:'주식 안하면 나만 손해?…활동계좌 올들어 670만개 늘었다',            link:'https://www.imaeil.com/page/view/2026050413210120283',  description:'코스피 시황과 비례하게 불어나는 활동계좌. 증시 불장에 주식 소유자도 역대 최대 수준을 기록했다.', pubDate:'Tue, 05 May 2026 15:44:00 +0900' }
+];
+
+// ════════════════════════════════════════════════════
+// UNIVERSAL RESPONSE PARSER
+// 아티팩트의 callMcpTool은 응답 형태가 다를 수 있어 모든 경우 처리:
+//  1) 직접 문자열 JSON
+//  2) MCP 표준: {content:[{type:"text", text:"..."}]}  ← 핵심 추가
+//  3) {result: "json_string"}
+//  4) {result: {object}}
+//  5) 직접 객체
+// ════════════════════════════════════════════════════
+function safeparse(res) {
+  if (res == null) return null;
+  // ① 직접 문자열
+  if (typeof res === 'string') {
+    try { return JSON.parse(res); } catch(e) { return null; }
+  }
+  // ② MCP 표준 content 배열 형태 (아티팩트 callMcpTool의 실제 반환 포맷)
+  if (Array.isArray(res.content) && res.content.length > 0) {
+    const txt = res.content[0]?.text;
+    if (typeof txt === 'string' && txt) {
+      try { return JSON.parse(txt); } catch(e) { return null; }
+    }
+    if (typeof txt === 'object' && txt != null) return txt;
+  }
+  // ③ {result: "json_string"}
+  if (typeof res.result === 'string') {
+    try { return JSON.parse(res.result); } catch(e) { return null; }
+  }
+  // ④ {result: object}
+  if (res.result !== undefined && res.result !== null && typeof res.result === 'object') {
+    return res.result;
+  }
+  // ⑤ 직접 객체
+  return res;
+}
+
+// ════════════════════════════════════════════════════
+// FORMAT HELPERS
+// ════════════════════════════════════════════════════
+function fmtPrice(p, isKRW) {
+  if (p == null || isNaN(p)) return '—';
+  if (isKRW) return p.toLocaleString('ko-KR');
+  return p.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+// 국내: 상승=빨강(up), 하락=파랑(down)
+// 미국: 상승=초록(us-up), 하락=빨강(us-dn)
+function fmtChg(c, r, isKRW, isUS=false) {
+  if (c == null || isNaN(c)) return {txt:'—', cls:'flat'};
+  const sign = c >= 0 ? '+' : '';
+  let cv;
+  if (isKRW) {
+    cv = Math.abs(c) >= 1 ? c.toLocaleString('ko-KR', {maximumFractionDigits:0}) : c.toFixed(2);
+  } else {
+    cv = Math.abs(c) >= 10 ? c.toFixed(1) : c.toFixed(2);
+  }
+  const pv = r != null ? ` (${r >= 0 ? '+' : ''}${r.toFixed(2)}%)` : '';
+  let cls;
+  if (isUS) {
+    cls = c > 0.001 ? 'us-up' : c < -0.001 ? 'us-dn' : 'flat';
+  } else {
+    cls = c > 0.001 ? 'up' : c < -0.001 ? 'down' : 'flat';
+  }
+  return { txt: sign + cv + pv, cls };
+}
+
+// ════════════════════════════════════════════════════
+// RENDER — STATE → DOM
+// ════════════════════════════════════════════════════
+function renderOverview() {
+  const now = new Date();
+  const days = ['일','월','화','수','목','금','토'];
+
+  // USD/KRW
+  $('ovFx').textContent = S.usd.p
+    ? `₩${S.usd.p.toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2})}`
+    : '—';
+  const {txt:uTxt, cls:uCls} = fmtChg(S.usd.c, S.usd.r, false, true);
+  $('ovFxSub').textContent = uTxt; $('ovFxSub').className = 'ov-sub ' + uCls;
+
+  // JPY/KRW (100엔 기준)
+  const jpy100p = S.jpy.p * 100;
+  const jpy100c = S.jpy.c * 100;
+  $('ovJpy').textContent = jpy100p ? `₩${jpy100p.toFixed(2)}` : '—';
+  const {txt:jTxt, cls:jCls} = fmtChg(jpy100c, S.jpy.r, false, true);
+  $('ovJpySub').textContent = jTxt; $('ovJpySub').className = 'ov-sub ' + jCls;
+
+  // 기준일
+  $('ovDate').textContent = `${now.getMonth()+1}월 ${now.getDate()}일 (${days[now.getDay()]})`;
+  $('ovTime').textContent = S.live
+    ? now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}) + ' 실시간'
+    : '시드 데이터 (2026.05.05)';
+
+  // 시장 분위기
+  const kospi = S.idx.find(x => x.t === '^KS11');
+  if (kospi && kospi.r != null) {
+    const r = kospi.r;
+    const [mood, desc, mCls] = r > 2   ? ['🔥 강세장', `KOSPI +${r.toFixed(2)}%`, 'up']
+      : r > 0.5  ? ['📈 상승세', `KOSPI +${r.toFixed(2)}%`, 'up']
+      : r > -0.5 ? ['😐 보합',   `KOSPI ${r.toFixed(2)}%`,  'flat']
+      : r > -2   ? ['📉 하락세', `KOSPI ${r.toFixed(2)}%`,  'down']
+      :            ['❄️ 약세장', `KOSPI ${r.toFixed(2)}%`,  'down'];
+    $('ovMood').textContent = mood;
+    $('ovMood').className = 'ov-val ' + mCls;
+    $('ovMoodSub').textContent = desc;
+    $('ovMoodSub').className = 'ov-sub ' + mCls;
+  }
+}
+
+function renderIndex() {
+  $('idxWrap').innerHTML = S.idx.map(item => {
+    const {txt, cls} = fmtChg(item.c, item.r, item.krw);
+    return `<div class="idx-card">
+      <div class="idx-nm">${item.n}</div>
+      <div class="idx-px">${fmtPrice(item.p, item.krw)}</div>
+      <div class="idx-ch ${cls}">${txt}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderKR() {
+  $('krWrap').innerHTML = S.kr.map(item => {
+    const {txt, cls} = fmtChg(item.c, item.r, true);
+    const isActive = S.activeTicker === item.t;
+    return `<div class="sk-card clickable${isActive?' active':''}" data-t="${item.t}" data-krw="1">
+      <span class="flag-bg">🇰🇷</span>
+      <span class="live-dot ${item._live?'live':'seed'}"></span>
+      <div class="sk-tic">${item.t.replace('.KS','')}</div>
+      <div class="sk-nm" title="${item.n}">${item.n}</div>
+      <div class="sk-px">${item.p ? fmtPrice(item.p, true) : '—'}</div>
+      <div class="sk-ch ${cls}">${item.r != null ? txt : '—'}</div>
+    </div>`;
+  }).join('');
+  $('krWrap').querySelectorAll('.sk-card').forEach(el => {
+    el.addEventListener('click', () => {
+      const stock = S.kr.find(x => x.t === el.dataset.t);
+      if (stock) onCardClick(stock.t, stock.n, true);
+    });
+  });
+}
+
+function renderUS() {
+  $('usWrap').innerHTML = S.us.map(item => {
+    const {txt, cls} = fmtChg(item.c, item.r, false, true);
+    const isActive = S.activeTicker === item.t;
+    return `<div class="sk-card clickable${isActive?' active':''}" data-t="${item.t}" data-krw="0">
+      <span class="flag-bg">🇺🇸</span>
+      <span class="live-dot ${item._live?'live':'seed'}"></span>
+      <div class="sk-tic">${item.t}</div>
+      <div class="sk-nm">${item.n}</div>
+      <div class="sk-px">${item.p != null ? fmtPrice(item.p, false) : '—'}</div>
+      <div class="sk-ch ${cls}">${item.r != null ? txt : '—'}</div>
+    </div>`;
+  }).join('');
+  $('usWrap').querySelectorAll('.sk-card').forEach(el => {
+    el.addEventListener('click', () => {
+      const stock = S.us.find(x => x.t === el.dataset.t);
+      if (stock) onCardClick(stock.t, stock.n, false);
+    });
+  });
+}
+
+function renderAll() {
+  renderOverview();
+  renderIndex();
+  renderKR();
+  renderUS();
+}
+
+// ════════════════════════════════════════════════════
+// CHART — 모든 종목 30일 차트 (클릭 시 표시)
+// ════════════════════════════════════════════════════
+let chartObj = null;
+
+// ────────────────────────────────────────────────────
+// drawChart — labels/vals/isKRW 로 즉시 차트 그리기
+// ────────────────────────────────────────────────────
+function drawChart(name, labels, vals, isKRW) {
+  if (chartObj) { chartObj.destroy(); chartObj = null; }
+  const isUp = vals[vals.length - 1] >= vals[0];
+  const color = isKRW
+    ? (isUp ? '#dc2626' : '#2563eb')
+    : (isUp ? '#16a34a' : '#dc2626');
+  const fmtTip = isKRW
+    ? (c => c.parsed.y.toLocaleString('ko-KR') + '원')
+    : (c => '$' + c.parsed.y.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}));
+
+  $('chTtl').textContent = `${name} — 30일 가격 추이`;
+  chartObj = new Chart($('chCanvas').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: vals,
+        borderColor: color,
+        backgroundColor: color + '18',
+        borderWidth: 2,
+        pointRadius: 2.5,
+        pointHoverRadius: 5,
+        fill: true,
+        tension: 0.35
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {display: false},
+        tooltip: {callbacks: {label: fmtTip}}
+      },
+      scales: {
+        y: {
+          grid: {color:'#f3f4f6'},
+          ticks: {
+            callback: v => isKRW
+              ? v.toLocaleString('ko-KR')
+              : '$' + v.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}),
+            font: {size:10}
+          }
+        },
+        x: {grid:{display:false}, ticks:{font:{size:10}}}
+      }
+    }
+  });
+}
+
+async function onCardClick(ticker, name, isKRW) {
+  const box = $('chBox');
+
+  // 같은 카드 다시 클릭 → 닫기
+  if (S.activeTicker === ticker) {
+    closeChart();
+    return;
+  }
+
+  // 새 종목 선택
+  S.activeTicker = ticker;
+  S.activeName   = name;
+  renderKR();
+  renderUS();
+
+  box.style.display = 'block';
+  box.scrollIntoView({behavior:'smooth', block:'nearest'});
+  $('chTtl').textContent = `${name} — 불러오는 중…`;
+  if (chartObj) { chartObj.destroy(); chartObj = null; }
+
+  const seed = CHART_SEEDS[ticker];
+
+  // ① 새로고침 전(시드 모드): 즉시 내장 데이터로 표시
+  if (!S.live && seed) {
+    drawChart(name, seed.labels, seed.vals, seed.krw);
+    return;
+  }
+
+  // ② 새로고침 후(라이브 모드): API에서 최신 차트 로드, 실패 시 시드 fallback
+  try {
+    let chartData = null;
+
+    if (window.cowork && typeof window.cowork.callMcpTool === 'function') {
+      // Cowork 환경: MCP 도구 사용
+      const res = await window.cowork.callMcpTool(T_HIST, { ticker, period: '1mo', interval: '1d' });
+      const data = safeparse(res);
+      const rows = Array.isArray(data) ? data : (data?.prices || data?.data || []);
+      if (rows && rows.length) {
+        const labels = rows.map(h => {
+          const d = new Date(h.Date || h.date || h.Datetime || '');
+          return (d.getUTCMonth() + 1) + '/' + d.getUTCDate();
+        });
+        chartData = { labels, vals: rows.map(h => +(h.Close || h.close || h['Adj Close'] || 0)) };
+      }
+    } else {
+      // 웹 환경: 직접 Yahoo Finance 호출
+      chartData = await fetchHistoricalDirect(ticker);
+    }
+
+    if (chartData && chartData.labels.length) {
+      drawChart(name, chartData.labels, chartData.vals, isKRW);
+    } else { throw new Error('empty'); }
+  } catch(e) {
+    // API 실패 시 시드로 fallback
+    if (seed) { drawChart(name, seed.labels, seed.vals, seed.krw); return; }
+    $('chTtl').textContent = `${name} — 데이터 없음`;
+  }
+}
+
+function closeChart() {
+  S.activeTicker = null;
+  S.activeName   = null;
+  $('chBox').style.display = 'none';
+  if (chartObj) { chartObj.destroy(); chartObj = null; }
+  renderKR();
+  renderUS();
+}
+
+// ════════════════════════════════════════════════════
+// STOCK FETCH — 재시도 3회, 간격 800ms
+// ════════════════════════════════════════════════════
+async function fetchStock(ticker) {
+  for (let i = 0; i < 3; i++) {
+    if (i > 0) await sleep(800);
+    try {
+      const res = await window.cowork.callMcpTool(T_STOCK, {ticker});
+      const d = safeparse(res);
+      if (!d) continue;
+      // price 우선순위: regularMarketPrice > currentPrice > previousClose
+      const rawP = d.regularMarketPrice ?? d.currentPrice ?? d.previousClose;
+      if (rawP == null) continue;
+      const prev = d.regularMarketPreviousClose ?? d.previousClose ?? rawP;
+      const chg  = d.regularMarketChange ?? (rawP - prev);
+      const pct  = d.regularMarketChangePercent ?? (prev ? chg/prev*100 : 0);
+      return {p: rawP, c: chg, r: pct};
+    } catch(e) { /* retry */ }
+  }
+  return null;
+}
+
+// ════════════════════════════════════════════════════
+// REFRESH — 순차 처리 (300ms 간격), 성공 시 즉시 렌더
+// ════════════════════════════════════════════════════
+// ── 프로그레스 바 헬퍼
+function progShow() {
+  $('rfProg').classList.add('on');
+  $('rfProgBar').classList.remove('done');
+  progSet(0, '연결 확인 중…');
+}
+function progSet(pct, label) {
+  $('rfProgBar').style.width = pct + '%';
+  $('rfProgPct').textContent  = Math.round(pct) + '%';
+  $('rfProgLbl').textContent  = label;
+}
+async function progDone(label) {
+  $('rfProgBar').classList.add('done');
+  progSet(100, label);
+  await sleep(1800);
+  $('rfProg').classList.remove('on');
+}
+
+function applyJob(job, d) {
+  if (job.type === 'usd') {
+    S.usd.p = d.p; S.usd.c = d.c; S.usd.r = d.r;
+  } else if (job.type === 'jpy') {
+    S.jpy.p = d.p; S.jpy.c = d.c; S.jpy.r = d.r;
+  } else if (job.type === 'idx') {
+    const o = S.idx.find(x => x.t === job.t); if (o) { o.p=d.p; o.c=d.c; o.r=d.r; }
+  } else if (job.type === 'kr') {
+    const o = S.kr.find(x => x.t === job.t);  if (o) { o.p=d.p; o.c=d.c; o.r=d.r; o._live=true; }
+  } else if (job.type === 'us') {
+    const o = S.us.find(x => x.t === job.t);  if (o) { o.p=d.p; o.c=d.c; o.r=d.r; o._live=true; }
+  }
+}
+
+async function doRefresh() {
+  const btn = $('rfBtn');
+  btn.disabled = true; btn.textContent = '로딩 중…';
+  progShow();
+
+  const jobs = [
+    {type:'usd', t:'KRW=X',    lbl:'USD/KRW 환율'},
+    {type:'jpy', t:'JPYKRW=X', lbl:'JPY/KRW 환율'},
+    ...S.idx.map(x=>({type:'idx', t:x.t, lbl:x.n})),
+    ...S.kr.map(x=>({type:'kr',  t:x.t, lbl:x.n})),
+    ...S.us.map(x=>({type:'us',  t:x.t, lbl:x.n}))
+  ];
+  const total = jobs.length;
+
+  // ── 1차 전체 순회
+  let n = 0;
+  const failed = [];
+  for (const job of jobs) {
+    await sleep(300);
+    progSet((n / total) * 100, `${job.lbl} 업데이트 중… (${n + 1}/${total})`);
+    const d = await getStockData(job.t);
+    n++;
+    if (!d) { failed.push(job); progSet((n / total) * 100, `${job.lbl} — 건너뜀`); continue; }
+    applyJob(job, d);
+    renderAll();
+  }
+
+  // ── 2차 실패 항목 재시도
+  if (failed.length > 0) {
+    progSet(100, `⚠️ ${failed.length}개 실패 — 재시도 중…`);
+    $('rfProgBar').style.background = 'linear-gradient(90deg,#f59e0b,#fcd34d)';
+    await sleep(1000);
+    let retried = 0;
+    for (const job of failed) {
+      await sleep(600);
+      progSet(100, `재시도: ${job.lbl} (${++retried}/${failed.length})`);
+      const d = await getStockData(job.t);
+      if (!d) { progSet(100, `${job.lbl} — 재시도 실패`); await sleep(400); continue; }
+      applyJob(job, d);
+      renderAll();
+      progSet(100, `✔ ${job.lbl} 성공`);
+      await sleep(300);
+    }
+  }
+
+  S.live = true;
+  renderAll();
+  const ts = new Date().toLocaleTimeString('ko-KR');
+  $('hdrSub').textContent = new Date().toLocaleString('ko-KR') + ' (실시간)';
+  setStatus(`✅ 마지막 업데이트: ${ts}`);
+  btn.disabled = false; btn.textContent = '↻ 새로고침';
+
+  await progDone(`✅ 업데이트 완료 — ${ts}`);
+
+  // 공시·뉴스도 함께 갱신
+  loadCompanyNews();
+  loadNews();
+}
+
+// ════════════════════════════════════════════════════
+// RENDER HELPERS — 공시·뉴스 HTML 생성
+// ════════════════════════════════════════════════════
+function renderDiscItems(items) {
+  return items.slice(0, 10).map(d => `
+    <div class="d-row">
+      <div class="d-corp">${d.corp_name || ''}</div>
+      <div class="d-rpt">${(d.report_nm || d.title || '').replace(/<[^>]+>/g,'').trim()}</div>
+      <div class="d-dt">${(d.rcept_dt || '').replace(/(\d{4})(\d{2})(\d{2})/, '$1.$2.$3')}</div>
+    </div>`).join('');
+}
+function renderNewsItems(items) {
+  return items.slice(0, 15).map(n => {
+    const title = (n.title || '').replace(/<[^>]+>/g, '');
+    const desc  = (n.description || '').replace(/<[^>]+>/g, '');
+    const link  = n.originallink || n.link || '#';
+    const dt    = n.pubDate
+      ? new Date(n.pubDate).toLocaleString('ko-KR', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})
+      : '';
+    return `<div class="n-row">
+      <a class="n-ttl" href="${link}" target="_blank" rel="noopener">${title}</a>
+      <div class="n-dsc">${desc}</div>
+      <div class="n-dt">${dt}</div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════
+// 보유 종목 뉴스 — 카드 종목별 뉴스 검색
+// ════════════════════════════════════════════════════
+async function loadCompanyNews() {
+  const el = $('discWrap');
+  // ① 로딩 표시
+  el.innerHTML = `<div class="loading-row"><span class="spin"></span>최신 뉴스 불러오는 중…</div>`;
+
+  const ready = await whenCowork(12000);
+
+  if (!ready) {
+    // ── 웹 버전: Netlify news 함수로 최신 뉴스 배치 fetch ──
+    try {
+      const items = await fetchNaverNewsBatch();
+      if (Array.isArray(items) && items.length) {
+        el.innerHTML = renderNewsItems(items);
+        return;
+      }
+    } catch(e) { /* fall through */ }
+    el.innerHTML = renderNewsItems(SEED_COMPANY_NEWS);
+    return;
+  }
+
+  // ── Cowork 버전 ──
+  const targets = [
+    ...S.kr.map(x => x.n),
+    'NVDA 엔비디아'
+  ];
+  const allItems = [];
+  for (const name of targets) {
+    try {
+      await sleep(300);
+      const res = await window.cowork.callMcpTool(T_NEWS, {
+        query: name + ' 주가',
+        display: 1,
+        sort: 'date'
+      });
+      const data = safeparse(res);
+      const items = data?.items || data?.data || data?.result?.items || (Array.isArray(data) ? data : null);
+      if (Array.isArray(items) && items.length) allItems.push(items[0]);
+    } catch(e) { /* skip */ }
+  }
+
+  if (allItems.length) {
+    allItems.sort((a, b) => new Date(b.pubDate || 0) - new Date(a.pubDate || 0));
+    el.innerHTML = renderNewsItems(allItems);
+  } else {
+    el.innerHTML = renderNewsItems(SEED_COMPANY_NEWS);
+  }
+}
+
+// ════════════════════════════════════════════════════
+// NEWS — 시드 즉시 표시 후 API로 갱신
+// ════════════════════════════════════════════════════
+async function loadNews() {
+  const el = $('newsWrap');
+  // ① 로딩 표시
+  el.innerHTML = `<div class="loading-row"><span class="spin"></span>최신 뉴스 불러오는 중…</div>`;
+
+  const ready = await whenCowork(12000);
+
+  if (!ready) {
+    // ── 웹 버전: Netlify news 함수로 최신 코스피 뉴스 ──
+    try {
+      const items = await fetchNaverNews('코스피 증시 시황', 8);
+      if (Array.isArray(items) && items.length) {
+        el.innerHTML = renderNewsItems(items);
+        return;
+      }
+    } catch(e) { /* fall through */ }
+    el.innerHTML = renderNewsItems(SEED_NEWS);
+    return;
+  }
+
+  // ── Cowork 버전 ──
+  try {
+    const res = await window.cowork.callMcpTool(T_NEWS, {
+      query: '코스피 증시 시황',
+      display: 8,
+      sort: 'date'
+    });
+    const data = safeparse(res);
+    const items = data?.items || data?.data || data?.result?.items || (Array.isArray(data) ? data : null);
+    if (Array.isArray(items) && items.length) {
+      el.innerHTML = renderNewsItems(items);
+    } else {
+      el.innerHTML = renderNewsItems(SEED_NEWS);
+    }
+  } catch(e) { el.innerHTML = renderNewsItems(SEED_NEWS); }
+}
+
+// ════════════════════════════════════════════════════
+// INIT — 시드로 즉시 렌더, 공시·뉴스는 백그라운드 로드
+// ════════════════════════════════════════════════════
+function init() {
+  renderAll();
+  // 공시와 뉴스는 백그라운드에서 비동기 로드 (주가 새로고침과 독립적으로)
+  loadCompanyNews();
+  loadNews();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>
