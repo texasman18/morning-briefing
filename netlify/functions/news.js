@@ -100,7 +100,11 @@ function ok(body) {
     headers: {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*',
-      'Cache-Control': 'no-store'
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Netlify-CDN-Cache-Control': 'no-store',
+      'Surrogate-Control': 'no-store'
     },
     body
   };
