@@ -101,7 +101,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans
 
 <!-- 웹 버전 안내 배너 -->
 <div style="background:#dbeafe;border-bottom:1px solid #93c5fd;color:#1e40af;font-size:11px;text-align:center;padding:7px 14px;line-height:1.5">
-  📡 <strong>웹 버전</strong> — 새로고침 버튼으로 <strong>야후파이낸스 실시간 데이터</strong> 업데이트 가능 &nbsp;·&nbsp; 뉴스는 시드 데이터 표시
+  📡 <strong>웹 버전</strong> — 새로고침 버튼으로 <strong>주가 &amp; 뉴스 모두 실시간 업데이트</strong> (Google News RSS 기반)
 </div>
 
 <!-- 새로고침 진행 바 -->
@@ -328,6 +328,29 @@ async function fetchHistoricalDirect(ticker) {
       return (d.getMonth() + 1) + '/' + d.getDate();
     });
     return { labels, vals: closes };
+  } catch(e) { return null; }
+}
+
+// ════════════════════════════════════════════════════
+// 뉴스 직접 fetch — Netlify news 함수 사용 (CORS 우회)
+// ════════════════════════════════════════════════════
+async function fetchNewsDirect(query, count = 8) {
+  try {
+    const url = `/.netlify/functions/news?q=${encodeURIComponent(query)}&n=${count}`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json?.items || null;
+  } catch(e) { return null; }
+}
+
+async function fetchCompanyNewsBatch(names) {
+  try {
+    const url = `/.netlify/functions/news?queries=${encodeURIComponent(names.join(','))}`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json?.items || null;
   } catch(e) { return null; }
 }
 
@@ -802,18 +825,30 @@ function renderNewsItems(items) {
 // ════════════════════════════════════════════════════
 async function loadCompanyNews() {
   const el = $('discWrap');
-  // ① 시드 즉시 표시
-  el.innerHTML = renderNewsItems(SEED_COMPANY_NEWS);
+  // ① 로딩 표시
+  el.innerHTML = `<div class="loading-row"><span class="spin"></span>최신 뉴스 불러오는 중…</div>`;
 
   const ready = await whenCowork(12000);
-  if (!ready) return;
 
-  // 검색 대상: KR 전체 + US 주요 (NVDA)
+  if (!ready) {
+    // ── 웹 버전: Netlify news 함수로 최신 뉴스 배치 fetch ──
+    try {
+      const names = [...S.kr.map(x => x.n), 'NVDA 엔비디아'];
+      const items = await fetchCompanyNewsBatch(names);
+      if (Array.isArray(items) && items.length) {
+        el.innerHTML = renderNewsItems(items);
+        return;
+      }
+    } catch(e) { /* fall through */ }
+    el.innerHTML = renderNewsItems(SEED_COMPANY_NEWS);
+    return;
+  }
+
+  // ── Cowork 버전 ──
   const targets = [
     ...S.kr.map(x => x.n),
     'NVDA 엔비디아'
   ];
-
   const allItems = [];
   for (const name of targets) {
     try {
@@ -830,9 +865,10 @@ async function loadCompanyNews() {
   }
 
   if (allItems.length) {
-    // 최신순 정렬
     allItems.sort((a, b) => new Date(b.pubDate || 0) - new Date(a.pubDate || 0));
     el.innerHTML = renderNewsItems(allItems);
+  } else {
+    el.innerHTML = renderNewsItems(SEED_COMPANY_NEWS);
   }
 }
 
@@ -841,12 +877,25 @@ async function loadCompanyNews() {
 // ════════════════════════════════════════════════════
 async function loadNews() {
   const el = $('newsWrap');
-  // ① 시드 즉시 표시
-  el.innerHTML = renderNewsItems(SEED_NEWS);
+  // ① 로딩 표시
+  el.innerHTML = `<div class="loading-row"><span class="spin"></span>최신 뉴스 불러오는 중…</div>`;
 
   const ready = await whenCowork(12000);
-  if (!ready) return; // 시드 유지
 
+  if (!ready) {
+    // ── 웹 버전: Netlify news 함수로 최신 코스피 뉴스 ──
+    try {
+      const items = await fetchNewsDirect('코스피 증시 시황 주식', 8);
+      if (Array.isArray(items) && items.length) {
+        el.innerHTML = renderNewsItems(items);
+        return;
+      }
+    } catch(e) { /* fall through */ }
+    el.innerHTML = renderNewsItems(SEED_NEWS);
+    return;
+  }
+
+  // ── Cowork 버전 ──
   try {
     const res = await window.cowork.callMcpTool(T_NEWS, {
       query: '코스피 증시 시황',
@@ -854,12 +903,13 @@ async function loadNews() {
       sort: 'date'
     });
     const data = safeparse(res);
-    // 가능한 모든 배열 위치 시도
     const items = data?.items || data?.data || data?.result?.items || (Array.isArray(data) ? data : null);
     if (Array.isArray(items) && items.length) {
-      el.innerHTML = renderNewsItems(items); // ② API 데이터로 교체
+      el.innerHTML = renderNewsItems(items);
+    } else {
+      el.innerHTML = renderNewsItems(SEED_NEWS);
     }
-  } catch(e) { /* 시드 유지 */ }
+  } catch(e) { el.innerHTML = renderNewsItems(SEED_NEWS); }
 }
 
 // ════════════════════════════════════════════════════
