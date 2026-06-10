@@ -1,63 +1,65 @@
-// Netlify 서버리스 함수 — 서버에서 Yahoo Finance 호출 (CORS 완전 우회)
-// 경로: /.netlify/functions/stock?ticker=NVDA&range=1d&interval=1d
+// Netlify 서버리스 함수 — Node.js https 모듈 사용 (버전 무관)
+const https = require('https');
 
 exports.handler = async (event) => {
-  const params = event.queryStringParameters || {};
-  const ticker   = params.ticker;
-  const range    = params.range    || '1d';
-  const interval = params.interval || '1d';
+  const p = event.queryStringParameters || {};
+  const ticker   = p.ticker;
+  const range    = p.range    || '1d';
+  const interval = p.interval || '1d';
 
   if (!ticker) {
-    return respond(400, { error: 'ticker 파라미터 필요' });
+    return respond(400, { error: 'ticker required' });
   }
 
-  const url =
-    `https://query1.finance.yahoo.com/v8/finance/chart/` +
-    `${encodeURIComponent(ticker)}?range=${range}&interval=${interval}`;
+  const hosts = ['query1.finance.yahoo.com', 'query2.finance.yahoo.com'];
+  const path  = `/v8/finance/chart/${encodeURIComponent(ticker)}?range=${range}&interval=${interval}`;
 
-  try {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ' +
-          'AppleWebKit/537.36 (KHTML, like Gecko) ' +
-          'Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Cache-Control': 'no-cache'
+  for (const host of hosts) {
+    try {
+      const result = await httpsGet(host, path);
+      if (result.status === 200) {
+        return {
+          statusCode: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'no-store'
+          },
+          body: result.body
+        };
       }
-    });
-
-    if (!res.ok) {
-      // query2 로 재시도
-      const res2 = await fetch(url.replace('query1', 'query2'), {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-          'Accept': 'application/json'
-        }
-      });
-      if (!res2.ok) return respond(502, { error: `Yahoo ${res2.status}` });
-      const body2 = await res2.text();
-      return ok(body2);
-    }
-
-    const body = await res.text();
-    return ok(body);
-  } catch (e) {
-    return respond(500, { error: e.message });
+    } catch (e) { /* 다음 host 시도 */ }
   }
+
+  return respond(502, { error: 'Yahoo Finance 응답 없음' });
 };
 
-function ok(body) {
-  return {
-    statusCode: 200,
-    headers: {
-      'Content-Type':  'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Cache-Control': 'no-store, no-cache'
-    },
-    body
-  };
+function httpsGet(host, path) {
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      {
+        hostname: host,
+        path,
+        method: 'GET',
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ' +
+            'AppleWebKit/537.36 (KHTML, like Gecko) ' +
+            'Chrome/124.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9'
+        }
+      },
+      (res) => {
+        let body = '';
+        res.on('data', (chunk) => { body += chunk; });
+        res.on('end', () => resolve({ status: res.statusCode, body }));
+      }
+    );
+    req.on('error', reject);
+    req.setTimeout(12000, () => { req.destroy(); reject(new Error('timeout')); });
+    req.end();
+  });
 }
 
 function respond(status, obj) {
