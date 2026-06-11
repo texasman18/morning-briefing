@@ -290,13 +290,13 @@ async function whenCowork(maxMs = 10000) {
 
 // ════════════════════════════════════════════════════
 // 직접 야후파이낸스 API — Netlify 서버리스 함수를 통해 서버에서 호출
-// 브라우저 CORS 문제 완전 우회 (/.netlify/functions/stock)
+// 브라우저 CORS 문제 완전 우회 (/api/stock)
 // ════════════════════════════════════════════════════
 async function fetchStockDirect(ticker) {
   for (let attempt = 0; attempt < 2; attempt++) {
     if (attempt > 0) await sleep(1500);
     try {
-      const url = `/.netlify/functions/stock?ticker=${encodeURIComponent(ticker)}&range=1d&interval=1d`;
+      const url = `/api/stock?ticker=${encodeURIComponent(ticker)}&range=1d&interval=1d`;
       const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) continue;
       const json = await res.json();
@@ -316,7 +316,7 @@ async function fetchStockDirect(ticker) {
 
 async function fetchHistoricalDirect(ticker) {
   try {
-    const url = `/.netlify/functions/stock?ticker=${encodeURIComponent(ticker)}&range=1mo&interval=1d`;
+    const url = `/api/stock?ticker=${encodeURIComponent(ticker)}&range=1mo&interval=1d`;
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return null;
     const json = await res.json();
@@ -339,7 +339,7 @@ async function fetchHistoricalDirect(ticker) {
 // 시장 뉴스: 네이버 단일 쿼리
 async function fetchNaverNews(query, count = 8) {
   try {
-    const url = `/.netlify/functions/news?q=${encodeURIComponent(query)}&n=${count}&_t=${Date.now()}`;
+    const url = `/api/news?q=${encodeURIComponent(query)}&n=${count}&_t=${Date.now()}`;
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return null;
     const json = await res.json();
@@ -354,7 +354,7 @@ async function fetchNaverNewsBatch() {
       ...S.kr.map(x => x.n),
       ...S.us.map(x => x.n)
     ].join(',');
-    const url = `/.netlify/functions/news?names=${encodeURIComponent(names)}&n=1&_t=${Date.now()}`;
+    const url = `/api/news?names=${encodeURIComponent(names)}&n=1&_t=${Date.now()}`;
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return null;
     const json = await res.json();
