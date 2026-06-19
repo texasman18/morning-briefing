@@ -200,10 +200,10 @@ const SEED = {
     { t:'005930.KS', n:'삼성전자',          p:232500,  c:12000,  r:5.44  },
     { t:'000660.KS', n:'SK하이닉스',        p:1447000, c:161000, r:12.52 },
     { t:'005380.KS', n:'현대차',            p:539000,  c:8000,   r:1.51  },
+    { t:'017670.KS', n:'SKT',              p:58500,   c:0,      r:0.00  },
     { t:'034020.KS', n:'두산에너빌리티',    p:127200,  c:100,    r:0.08  },
     { t:'006800.KS', n:'미래에셋증권',          p:66900,  c:1500,  r:2.29  },
     { t:'0193T0.KS', n:'KODEX 하이닉스레버리지', p:10000, c:0,     r:0.00  },
-    { t:'274090.KQ', n:'켄코아에어로스페이스',   p:23800,  c:300,   r:1.28  },
     { t:'229200.KS', n:'KODEX 코스닥150',       p:20175,  c:320,   r:1.61  },
     { t:'091230.KS', n:'KODEX AI반도체',    p:136155,  c:6495,   r:5.01  },
     { t:'490090.KS', n:'KODEX 미국우주항공',p:16220,   c:0,      r:0.00  },
@@ -219,7 +219,8 @@ const SEED = {
     { t:'TQQQ', n:'TQQQ',  p:64.91,  c:-0.39, r:-0.60 },
     { t:'SOXX', n:'SOXX',  p:462.06, c:-3.69, r:-0.79 },
     { t:'SPY',  n:'SPY',   p:718.01, c:-2.64, r:-0.37 },
-    { t:'RONB', n:'RONB',  p:23.89,  c:-0.03, r:-0.11 }
+    { t:'RONB', n:'RONB',  p:23.89,  c:-0.03, r:-0.11 },
+  
   ]
 };
 
@@ -233,9 +234,9 @@ const CHART_SEEDS = {
   '005930.KS': { labels:KR_L, vals:[193100,196500,210500,204000,206000,201000,206500,211000,217500,216000,214500,219000,217500,224500,219500,224500,222000,226000,220500,232500], krw:true },
   '000660.KS': { labels:KR_L, vals:[886000,916000,1033000,998000,1027000,1040000,1103000,1136000,1155000,1128000,1166000,1224000,1223000,1225000,1222000,1292000,1300000,1293000,1286000,1447000], krw:true },
   '005380.KS': { labels:KR_L, vals:[469000,473000,508000,489500,489500,478500,491500,508000,534000,538000,527000,546000,541000,532000,513000,524000,555000,556000,531000,539000], krw:true },
+  '017670.KS': { labels:KR_L, vals:[53500,54000,54500,55000,54500,55500,56000,56500,57000,57500,57000,57500,58000,58500,58000,58500,59000,59000,58500,58500], krw:true },
   '034020.KS': { labels:KR_L, vals:[95700,94900,101200,100000,100200,99300,99700,104200,110800,108500,111000,115700,115900,122600,127100,128900,127800,129200,127100,127200], krw:true },
   '006800.KS': { labels:KR_L, vals:[55000,56000,58000,57000,57500,56500,58000,59500,61000,62000,61500,63000,64000,65000,64500,65500,66000,66500,65500,66900], krw:true },
-  '274090.KQ': { labels:KR_L, vals:[19500,19800,20500,20200,20000,20300,21000,21500,22000,22300,22500,23000,23800,23500,24000,23700,24200,24500,24000,23800], krw:true },
   '0193T0.KS': { labels:KR_L, vals:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null], krw:true },
   '229200.KS': { labels:KR_L, vals:[17791,17721,18684,18390,18550,18515,18699,19388,19523,19523,19673,19873,19843,19688,20267,20642,20387,20490,19855,20175], krw:true },
   '091230.KS': { labels:KR_L, vals:[98193,99560,108836,106894,107992,108411,110573,114332,116099,116503,117921,121805,122454,122938,125674,131020,131659,131500,129660,136155], krw:true },
@@ -250,7 +251,8 @@ const CHART_SEEDS = {
   'TQQQ': { labels:US_L, vals:[44.10,44.15,48.00,48.96,49.17,50.66,53.41,55.65,56.43,58.59,58.08,57.40,60.21,59.22,62.56,62.64,60.74,61.86,63.54,65.30,64.91], krw:false },
   'SOXX': { labels:US_L, vals:[344.10,347.76,370.40,378.63,386.60,393.34,401.24,401.86,405.95,415.71,417.55,420.70,431.77,441.00,461.60,455.41,438.71,449.99,461.44,465.75,462.06], krw:false },
   'SPY':  { labels:US_L, vals:[658.93,659.22,676.01,679.91,679.46,686.10,694.46,699.94,701.66,710.14,708.72,704.08,711.21,708.45,713.94,715.17,711.69,711.58,718.66,720.65,718.01], krw:false },
-  'RONB': { labels:US_L, vals:[22.30,22.55,22.80,23.00,23.20,23.35,23.50,23.65,23.80,23.95,24.10,24.25,24.40,24.55,24.70,24.55,24.40,24.25,24.10,24.00,23.89], krw:false }
+  'RONB': { labels:US_L, vals:[22.30,22.55,22.80,23.00,23.20,23.35,23.50,23.65,23.80,23.95,24.10,24.25,24.40,24.55,24.70,24.55,24.40,24.25,24.10,24.00,23.89], krw:false },
+
 };
 
 // ════════════════════════════════════════════════════
@@ -290,13 +292,13 @@ async function whenCowork(maxMs = 10000) {
 
 // ════════════════════════════════════════════════════
 // 직접 야후파이낸스 API — Netlify 서버리스 함수를 통해 서버에서 호출
-// 브라우저 CORS 문제 완전 우회 (/api/stock)
+// 브라우저 CORS 문제 완전 우회 (/.netlify/functions/stock)
 // ════════════════════════════════════════════════════
 async function fetchStockDirect(ticker) {
   for (let attempt = 0; attempt < 2; attempt++) {
     if (attempt > 0) await sleep(1500);
     try {
-      const url = `/api/stock?ticker=${encodeURIComponent(ticker)}&range=1d&interval=1d`;
+      const url = `/.netlify/functions/stock?ticker=${encodeURIComponent(ticker)}&range=1d&interval=1d`;
       const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) continue;
       const json = await res.json();
@@ -316,7 +318,7 @@ async function fetchStockDirect(ticker) {
 
 async function fetchHistoricalDirect(ticker) {
   try {
-    const url = `/api/stock?ticker=${encodeURIComponent(ticker)}&range=1mo&interval=1d`;
+    const url = `/.netlify/functions/stock?ticker=${encodeURIComponent(ticker)}&range=1mo&interval=1d`;
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return null;
     const json = await res.json();
@@ -339,7 +341,7 @@ async function fetchHistoricalDirect(ticker) {
 // 시장 뉴스: 네이버 단일 쿼리
 async function fetchNaverNews(query, count = 8) {
   try {
-    const url = `/api/news?q=${encodeURIComponent(query)}&n=${count}&_t=${Date.now()}`;
+    const url = `/.netlify/functions/news?q=${encodeURIComponent(query)}&n=${count}&_t=${Date.now()}`;
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return null;
     const json = await res.json();
@@ -354,7 +356,7 @@ async function fetchNaverNewsBatch() {
       ...S.kr.map(x => x.n),
       ...S.us.map(x => x.n)
     ].join(',');
-    const url = `/api/news?names=${encodeURIComponent(names)}&n=1&_t=${Date.now()}`;
+    const url = `/.netlify/functions/news?names=${encodeURIComponent(names)}&n=1&_t=${Date.now()}`;
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return null;
     const json = await res.json();
