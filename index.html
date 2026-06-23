@@ -220,6 +220,7 @@ const SEED = {
     { t:'SOXX', n:'SOXX',  p:462.06, c:-3.69, r:-0.79 },
     { t:'SPY',  n:'SPY',   p:718.01, c:-2.64, r:-0.37 },
     { t:'RONB', n:'RONB',  p:23.89,  c:-0.03, r:-0.11 },
+    { t:'SPCX', n:'SpaceX',p:154.60, c:-30.40,r:-16.43},
   
   ]
 };
@@ -252,6 +253,7 @@ const CHART_SEEDS = {
   'SOXX': { labels:US_L, vals:[344.10,347.76,370.40,378.63,386.60,393.34,401.24,401.86,405.95,415.71,417.55,420.70,431.77,441.00,461.60,455.41,438.71,449.99,461.44,465.75,462.06], krw:false },
   'SPY':  { labels:US_L, vals:[658.93,659.22,676.01,679.91,679.46,686.10,694.46,699.94,701.66,710.14,708.72,704.08,711.21,708.45,713.94,715.17,711.69,711.58,718.66,720.65,718.01], krw:false },
   'RONB': { labels:US_L, vals:[22.30,22.55,22.80,23.00,23.20,23.35,23.50,23.65,23.80,23.95,24.10,24.25,24.40,24.55,24.70,24.55,24.40,24.25,24.10,24.00,23.89], krw:false },
+  'SPCX': { labels:US_L, vals:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,154.60], krw:false },
 
 };
 
@@ -661,13 +663,13 @@ async function onCardClick(ticker, name, isKRW) {
 function closeChart() {
   S.activeTicker = null;
   S.activeName   = null;
-  $('chBox').style.display = 'none';
+  $('chBox').style.display = 'none'
   if (chartObj) { chartObj.destroy(); chartObj = null; }
   renderKR();
   renderUS();
 }
 
-// ════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
 // STOCK FETCH — 재시도 3회, 간격 800ms
 // ════════════════════════════════════════════════════
 async function fetchStock(ticker) {
@@ -836,7 +838,8 @@ async function loadCompanyNews() {
   // ── Cowork 버전 ──
   const targets = [
     ...S.kr.map(x => x.n),
-    'NVDA 엔비디아'
+    'NVDA 엔비디아',
+    'SpaceX SPCX'
   ];
   const allItems = [];
   for (const name of targets) {
