@@ -1,0 +1,7 @@
+{
+  "name": "morning-briefing",
+  "private": true,
+  "dependencies": {
+    "@vercel/functions": "^1.5.0"
+  }
+}
