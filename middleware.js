@@ -1,26 +1,44 @@
+// Vercel Routing Middleware — 사이트 전체(페이지 + /api/*)에 Basic Auth 접근 제한 적용
+// 실제 보유종목/수익률 등 개인 금융정보가 표시되므로, 로그인 전에는 어떤 경로도 노출하지 않습니다.
+import { next } from '@vercel/functions';
+
 export const config = {
-  matcher: '/',
+  matcher: '/((?!_vercel/).*)',
 };
 
+function unauthorized() {
+  return new Response('Authentication required.', {
+    status: 401,
+    headers: {
+      'WWW-Authenticate': 'Basic realm="Morning Briefing", charset="UTF-8"',
+    },
+  });
+}
+
 export default function middleware(request) {
-  let info;
-  try {
-    const authHeader = request.headers.get('authorization');
-    let atobResult = null;
-    let atobError = null;
-    try {
-      atobResult = atob('dGVzdDoxMjM=');
-    } catch (e) {
-      atobError = String(e);
-    }
-    info = {
-      hasRequest: typeof request,
-      authHeader: authHeader,
-      atobResult,
-      atobError,
-    };
-  } catch (e) {
-    info = { error: String(e), stack: e && e.stack };
+  const validUser = process.env.SITE_USER;
+  const validPass = process.env.SITE_PASSWORD;
+
+  // 서버에 비밀번호가 설정되지 않은 경우, 안전하게 기본 차단
+  if (!validUser || !validPass) {
+    return unauthorized();
   }
-  return new Response(JSON.stringify(info), { status: 200, headers: { 'content-type': 'application/json' } });
+
+  const authHeader = request.headers.get('authorization');
+  if (authHeader && authHeader.startsWith('Basic ')) {
+    let decoded = '';
+    try {
+      decoded = atob(authHeader.slice(6));
+    } catch (e) {
+      return unauthorized();
+    }
+    const sep = decoded.indexOf(':');
+    const user = sep >= 0 ? decoded.slice(0, sep) : decoded;
+    const pass = sep >= 0 ? decoded.slice(sep + 1) : '';
+    if (user === validUser && pass === validPass) {
+      return next();
+    }
+  }
+
+  return unauthorized();
 }
