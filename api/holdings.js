@@ -23,6 +23,8 @@ module.exports = async (req, res) => {
       marketValue: it.marketValue ? Number(it.marketValue.amount) : null,
       profitAmount: it.profitLoss ? Number(it.profitLoss.amount) : null,
       profitRate: it.profitLoss ? Number(it.profitLoss.rate) : null,
+      dailyAmount: it.dailyProfitLoss ? Number(it.dailyProfitLoss.amount) : null,
+      dailyRate: it.dailyProfitLoss ? Number(it.dailyProfitLoss.rate) : null,
     }));
 
     res.setHeader('Content-Type', 'application/json');
@@ -40,6 +42,11 @@ module.exports = async (req, res) => {
         krw: overview.profitLoss && overview.profitLoss.amount ? Number(overview.profitLoss.amount.krw) : 0,
         usd: overview.profitLoss && overview.profitLoss.amount ? Number(overview.profitLoss.amount.usd) : null,
         rate: overview.profitLoss ? Number(overview.profitLoss.rate) : null,
+      },
+      dailyProfitLoss: {
+        krw: overview.dailyProfitLoss && overview.dailyProfitLoss.amount ? Number(overview.dailyProfitLoss.amount.krw) : 0,
+        usd: overview.dailyProfitLoss && overview.dailyProfitLoss.amount ? Number(overview.dailyProfitLoss.amount.usd) : null,
+        rate: overview.dailyProfitLoss ? Number(overview.dailyProfitLoss.rate) : null,
       },
       items,
     });
