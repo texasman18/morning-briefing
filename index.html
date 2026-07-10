@@ -19,6 +19,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans
 /* Sections */
 .sec{margin:12px 12px 0}
 .sec-ttl{font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}
+/* Portfolio summary */
+.port-box{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.07);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.port-lbl{font-size:9px;color:#9ca3af;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.port-val{font-size:16px;font-weight:800;color:#111827}
+.port-sub{font-size:11px;color:#9ca3af;margin-top:3px}
 /* Overview — 4 columns */
 .ov-wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 @media(max-width:560px){.ov-wrap{grid-template-columns:repeat(2,1fr)}}
@@ -41,7 +46,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans
 .sk-card.active{border-color:#3b82f6!important;box-shadow:0 0 0 3px rgba(59,130,246,.15)!important}
 /* 국기 배경 — 카드 전체 덮기 */
 .flag-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:4.5rem;opacity:0.07;pointer-events:none;line-height:1;user-select:none;z-index:0}
-.sk-tic,.sk-nm,.sk-px,.sk-ch{position:relative;z-index:1}
+.sk-tic,.sk-nm,.sk-px,.sk-ch,.sk-qty{position:relative;z-index:1}
 /* 실시간 뱃지 */
 .live-dot{position:absolute;top:6px;right:7px;width:6px;height:6px;border-radius:50%;z-index:2}
 .live-dot.live{background:#16a34a;box-shadow:0 0 4px rgba(22,163,74,.6)}
@@ -50,6 +55,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans
 .sk-nm{font-size:12px;font-weight:700;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px}
 .sk-px{font-size:14px;font-weight:800;color:#111827}
 .sk-ch{font-size:11px;font-weight:700;margin-top:2px}
+.sk-qty{font-size:9px;color:#9ca3af;margin-top:2px}
 /* Korean color convention: up=red, down=blue */
 .up{color:#dc2626}.down{color:#2563eb}.flat{color:#6b7280}
 /* US: up=green, down=red — applied via .us-up / .us-dn */
@@ -101,7 +107,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans
 
 <!-- 웹 버전 안내 배너 -->
 <div style="background:#dbeafe;border-bottom:1px solid #93c5fd;color:#1e40af;font-size:11px;text-align:center;padding:7px 14px;line-height:1.5">
-  📡 <strong>웹 버전</strong> — 새로고침 버튼으로 <strong>주가 &amp; 뉴스 모두 실시간 업데이트</strong> (Google News RSS 기반)
+  📡 <strong>웹 버전</strong> — 페이지를 열거나 새로고침할 때마다 <strong>내 토스증권 보유종목 · 현재가 · 수익률이 실시간 동기화</strong>됩니다 (뉴스는 Google/Naver 뉴스 기반, 기존 방식 유지)
 </div>
 
 <!-- 새로고침 진행 바 -->
@@ -112,6 +118,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans
   </div>
   <div class="rf-prog-track">
     <div class="rf-prog-bar" id="rfProgBar"></div>
+  </div>
+</div>
+
+<div class="sec" id="portSec" style="display:none">
+  <div class="sec-ttl">내 보유자산 (토스증권 실시간)</div>
+  <div class="port-box">
+    <div>
+      <div class="port-lbl">평가금액</div>
+      <div class="port-val" id="portValue">—</div>
+      <div class="port-sub" id="portUpdated">—</div>
+    </div>
+    <div style="text-align:right">
+      <div class="port-lbl">총손익</div>
+      <div class="port-val" id="portProfit">—</div>
+    </div>
   </div>
 </div>
 
@@ -147,12 +168,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',sans
 </div>
 
 <div class="sec">
-  <div class="sec-ttl">국내 종목 <span style="font-size:10px;color:#9ca3af;font-weight:400;text-transform:none;letter-spacing:0">· 종목 클릭 → 30일 차트</span></div>
+  <div class="sec-ttl">국내 보유 종목 <span style="font-size:10px;color:#9ca3af;font-weight:400;text-transform:none;letter-spacing:0">· 종목 클릭 → 30일 차트</span></div>
   <div class="sk-wrap" id="krWrap"></div>
 </div>
 
 <div class="sec">
-  <div class="sec-ttl">미국 종목 <span style="font-size:10px;color:#9ca3af;font-weight:400;text-transform:none;letter-spacing:0">· 종목 클릭 → 30일 차트</span></div>
+  <div class="sec-ttl">미국 보유 종목 <span style="font-size:10px;color:#9ca3af;font-weight:400;text-transform:none;letter-spacing:0">· 종목 클릭 → 30일 차트</span></div>
   <div class="sk-wrap" id="usWrap"></div>
 </div>
 
@@ -207,9 +228,7 @@ const SEED = {
     { t:'229200.KS', n:'KODEX 코스닥150',       p:20175,  c:320,   r:1.61  },
     { t:'091230.KS', n:'KODEX AI반도체',    p:136155,  c:6495,   r:5.01  },
     { t:'490090.KS', n:'KODEX 미국우주항공',p:16220,   c:0,      r:0.00  },
-    { t:'0183J0.KS', n:'TIGER 미국우주테크', p:12900,  c:185,    r:1.45  },
-    { t:'277810.KQ', n:'레인보우로보틱스',   p:519000, c:0,      r:0.00  },
-    { t:'001440.KS', n:'대한전선',           p:36800,  c:2900,   r:8.56  }
+    { t:'0183J0.KS', n:'TIGER 미국우주테크', p:12900,  c:185,    r:1.45  }
   ],
   us: [
     { t:'NVDA', n:'NVDA',  p:198.48, c:0.03,  r:0.02  },
@@ -222,8 +241,7 @@ const SEED = {
     { t:'SOXX', n:'SOXX',  p:462.06, c:-3.69, r:-0.79 },
     { t:'SPY',  n:'SPY',   p:718.01, c:-2.64, r:-0.37 },
     { t:'RONB', n:'RONB',  p:23.89,  c:-0.03, r:-0.11 },
-    { t:'SPCX', n:'SpaceX',p:154.60, c:-30.40,r:-16.43},
-  
+
   ]
 };
 
@@ -245,8 +263,6 @@ const CHART_SEEDS = {
   '091230.KS': { labels:KR_L, vals:[98193,99560,108836,106894,107992,108411,110573,114332,116099,116503,117921,121805,122454,122938,125674,131020,131659,131500,129660,136155], krw:true },
   '490090.KS': { labels:KR_L, vals:[14265,14230,14565,14505,14730,14830,15070,15335,15755,15700,15760,15785,15825,16000,15980,16165,16200,16245,16220,16220], krw:true },
   '0183J0.KS': { labels:KR_L, vals:[null,null,null,null,null,null,null,null,null,null,9475,10280,10680,11020,11350,11800,12100,12400,12715,12900], krw:true },
-  '277810.KQ': { labels:KR_L, vals:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,519000], krw:true },
-  '001440.KS': { labels:KR_L, vals:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,36800], krw:true },
   'NVDA': { labels:US_L, vals:[177.64,178.10,182.08,183.91,188.63,189.31,196.51,198.87,198.35,201.68,202.06,199.88,202.50,199.64,208.27,216.61,213.17,209.25,199.57,198.45,198.48], krw:false },
   'JEPQ': { labels:US_L, vals:[55.36,55.36,56.53,56.94,57.05,57.40,57.80,57.90,57.95,58.08,58.08,58.06,58.30,58.24,58.40,58.45,58.34,58.41,58.68,58.86,58.83], krw:false },
   'QQQM': { labels:US_L, vals:[242.32,242.38,249.54,251.23,251.60,254.17,258.78,262.48,263.69,267.13,266.30,265.31,269.63,268.22,273.38,273.51,270.76,272.39,274.90,277.54,277.05], krw:false },
@@ -257,7 +273,6 @@ const CHART_SEEDS = {
   'SOXX': { labels:US_L, vals:[344.10,347.76,370.40,378.63,386.60,393.34,401.24,401.86,405.95,415.71,417.55,420.70,431.77,441.00,461.60,455.41,438.71,449.99,461.44,465.75,462.06], krw:false },
   'SPY':  { labels:US_L, vals:[658.93,659.22,676.01,679.91,679.46,686.10,694.46,699.94,701.66,710.14,708.72,704.08,711.21,708.45,713.94,715.17,711.69,711.58,718.66,720.65,718.01], krw:false },
   'RONB': { labels:US_L, vals:[22.30,22.55,22.80,23.00,23.20,23.35,23.50,23.65,23.80,23.95,24.10,24.25,24.40,24.55,24.70,24.55,24.40,24.25,24.10,24.00,23.89], krw:false },
-  'SPCX': { labels:US_L, vals:[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,154.60], krw:false },
 
 };
 
@@ -271,6 +286,7 @@ const S = {
   kr:   SEED.kr.map(x=>({...x})),
   us:   SEED.us.map(x=>({...x})),
   live: false,
+  holdingsLoaded: false,
   activeTicker: null,  // 현재 차트에 표시 중인 티커
   activeName: null
 };
@@ -297,8 +313,8 @@ async function whenCowork(maxMs = 10000) {
 }
 
 // ════════════════════════════════════════════════════
-// 직접 야후파이낸스 API — Netlify 서버리스 함수를 통해 서버에서 호출
-// 브라우저 CORS 문제 완전 우회 (/.netlify/functions/stock)
+// 직접 야후파이낸스 API — Vercel 서버리스 함수를 통해 서버에서 호출
+// 브라우저 CORS 문제 완전 우회 (/api/stock)
 // ════════════════════════════════════════════════════
 async function fetchStockDirect(ticker) {
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -323,26 +339,30 @@ async function fetchStockDirect(ticker) {
 }
 
 async function fetchHistoricalDirect(ticker) {
-  try {
-    const url = `/api/stock?ticker=${encodeURIComponent(ticker)}&range=1mo&interval=1d`;
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) return null;
-    const json = await res.json();
-    const result = json?.chart?.result?.[0];
-    if (!result) return null;
-    const timestamps = result.timestamp || [];
-    const closes = result.indicators?.quote?.[0]?.close || [];
-    if (!timestamps.length) return null;
-    const labels = timestamps.map(ts => {
-      const d = new Date(ts * 1000);
-      return (d.getMonth() + 1) + '/' + d.getDate();
-    });
-    return { labels, vals: closes };
-  } catch(e) { return null; }
+  const candidates = /^\d{6}$/.test(ticker) ? [ticker + '.KS', ticker + '.KQ'] : [ticker];
+  for (const tk of candidates) {
+    try {
+      const url = `/api/stock?ticker=${encodeURIComponent(tk)}&range=1mo&interval=1d`;
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) continue;
+      const json = await res.json();
+      const result = json?.chart?.result?.[0];
+      if (!result) continue;
+      const timestamps = result.timestamp || [];
+      const closes = result.indicators?.quote?.[0]?.close || [];
+      if (!timestamps.length) continue;
+      const labels = timestamps.map(ts => {
+        const d = new Date(ts * 1000);
+        return (d.getMonth() + 1) + '/' + d.getDate();
+      });
+      return { labels, vals: closes };
+    } catch(e) { /* try next candidate */ }
+  }
+  return null;
 }
 
 // ════════════════════════════════════════════════════
-// 뉴스 fetch — Netlify news 함수 (네이버 Search API, 한국어)
+// 뉴스 fetch — Vercel news 함수 (네이버 Search API, 한국어)
 // ════════════════════════════════════════════════════
 // 시장 뉴스: 네이버 단일 쿼리
 async function fetchNaverNews(query, count = 8) {
@@ -376,6 +396,75 @@ async function getStockData(ticker) {
     return await fetchStock(ticker);
   }
   return await fetchStockDirect(ticker);
+}
+
+// ════════════════════════════════════════════════════
+// 보유 종목 — 토스증권 Open API (서버리스 /api/holdings 경유)
+// 페이지 로드 & 새로고침마다 실시간 동기화. 시크릿은 서버에만 존재.
+// ════════════════════════════════════════════════════
+async function fetchHoldings() {
+  try {
+    const res = await fetch('/api/holdings', { cache: 'no-store' });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch(e) { return null; }
+}
+
+function applyHoldings(data) {
+  if (!data || !Array.isArray(data.items)) return false;
+
+  const krItems = [];
+  const usItems = [];
+  data.items.forEach(it => {
+    const isKRW = (it.currency === 'KRW') || (it.market === 'KR');
+    const ratePct = (it.profitRate != null) ? it.profitRate * 100 : null;
+    const isSixDigit = /^\d{6}$/.test(it.symbol || '');
+    const obj = {
+      t: isKRW && isSixDigit ? (it.symbol + '.KS') : it.symbol,
+      symbol: it.symbol,
+      n: it.name || it.symbol,
+      p: it.lastPrice,
+      c: it.profitAmount,
+      r: ratePct,
+      qty: it.quantity,
+      avgPrice: it.avgPrice,
+      currency: it.currency,
+      _live: true
+    };
+    if (isKRW) krItems.push(obj); else usItems.push(obj);
+  });
+
+  if (krItems.length) S.kr = krItems;
+  if (usItems.length) S.us = usItems;
+  S.holdingsLoaded = true;
+
+  $('portSec').style.display = krItems.length || usItems.length ? 'block' : 'none';
+  const mvKrw = data.marketValue?.krw ?? 0;
+  const mvUsd = data.marketValue?.usd ?? null;
+  $('portValue').textContent = `₩${Math.round(mvKrw).toLocaleString('ko-KR')}` +
+    (mvUsd ? ` + $${mvUsd.toLocaleString('en-US',{maximumFractionDigits:2})}` : '');
+
+  const plKrw = data.profitLoss?.krw ?? 0;
+  const plRatePct = (data.profitLoss?.rate != null) ? data.profitLoss.rate * 100 : null;
+  const {txt, cls} = fmtChg(plKrw, plRatePct, true);
+  $('portProfit').textContent = txt;
+  $('portProfit').className = 'port-val ' + cls;
+
+  $('portUpdated').textContent = data.updatedAt
+    ? ('업데이트: ' + new Date(data.updatedAt).toLocaleTimeString('ko-KR'))
+    : '';
+
+  return true;
+}
+
+async function loadHoldings() {
+  const data = await fetchHoldings();
+  if (data && applyHoldings(data)) {
+    renderKR();
+    renderUS();
+    return true;
+  }
+  return false;
 }
 
 // 뉴스를 불러올 수 없을 때 표시할 빈 메시지
@@ -423,6 +512,11 @@ function fmtPrice(p, isKRW) {
   if (p == null || isNaN(p)) return '—';
   if (isKRW) return p.toLocaleString('ko-KR');
   return p.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function fmtQty(q) {
+  if (q == null || isNaN(q)) return '';
+  return (Math.abs(q % 1) > 0) ? q.toLocaleString('ko-KR', {maximumFractionDigits:4}) : q.toLocaleString('ko-KR');
 }
 
 // 국내: 상승=빨강(up), 하락=파랑(down)
@@ -504,10 +598,11 @@ function renderKR() {
   $('krWrap').innerHTML = S.kr.map(item => {
     const {txt, cls} = fmtChg(item.c, item.r, true);
     const isActive = S.activeTicker === item.t;
+    const qtyLine = item.qty != null ? `${(item.symbol||item.t).replace('.KS','')} · ${fmtQty(item.qty)}주` : item.t.replace('.KS','');
     return `<div class="sk-card clickable${isActive?' active':''}" data-t="${item.t}" data-krw="1">
       <span class="flag-bg">🇰🇷</span>
       <span class="live-dot ${item._live?'live':'seed'}"></span>
-      <div class="sk-tic">${item.t.replace('.KS','')}</div>
+      <div class="sk-tic">${qtyLine}</div>
       <div class="sk-nm" title="${item.n}">${item.n}</div>
       <div class="sk-px">${item.p ? fmtPrice(item.p, true) : '—'}</div>
       <div class="sk-ch ${cls}">${item.r != null ? txt : '—'}</div>
@@ -525,10 +620,11 @@ function renderUS() {
   $('usWrap').innerHTML = S.us.map(item => {
     const {txt, cls} = fmtChg(item.c, item.r, false, true);
     const isActive = S.activeTicker === item.t;
+    const qtyLine = item.qty != null ? `${item.t} · ${fmtQty(item.qty)}주` : item.t;
     return `<div class="sk-card clickable${isActive?' active':''}" data-t="${item.t}" data-krw="0">
       <span class="flag-bg">🇺🇸</span>
       <span class="live-dot ${item._live?'live':'seed'}"></span>
-      <div class="sk-tic">${item.t}</div>
+      <div class="sk-tic">${qtyLine}</div>
       <div class="sk-nm">${item.n}</div>
       <div class="sk-px">${item.p != null ? fmtPrice(item.p, false) : '—'}</div>
       <div class="sk-ch ${cls}">${item.r != null ? txt : '—'}</div>
@@ -627,13 +723,13 @@ async function onCardClick(ticker, name, isKRW) {
 
   const seed = CHART_SEEDS[ticker];
 
-  // ① 새로고침 전(시드 모드): 즉시 내장 데이터로 표시
-  if (!S.live && seed) {
+  // ① 새로고침 전(시드 모드) & 보유종목 미로드 상태: 즉시 내장 데이터로 표시
+  if (!S.live && !S.holdingsLoaded && seed) {
     drawChart(name, seed.labels, seed.vals, seed.krw);
     return;
   }
 
-  // ② 새로고침 후(라이브 모드): API에서 최신 차트 로드, 실패 시 시드 fallback
+  // ② 라이브 모드: API에서 최신 차트 로드, 실패 시 시드 fallback
   try {
     let chartData = null;
 
@@ -667,13 +763,13 @@ async function onCardClick(ticker, name, isKRW) {
 function closeChart() {
   S.activeTicker = null;
   S.activeName   = null;
-  $('chBox').style.display = 'none'
+  $('chBox').style.display = 'none';
   if (chartObj) { chartObj.destroy(); chartObj = null; }
   renderKR();
   renderUS();
 }
 
-// ═══════════════════════════════════════════════════
+// ════════════════════════════════════════════════════
 // STOCK FETCH — 재시도 3회, 간격 800ms
 // ════════════════════════════════════════════════════
 async function fetchStock(ticker) {
@@ -723,10 +819,6 @@ function applyJob(job, d) {
     S.jpy.p = d.p; S.jpy.c = d.c; S.jpy.r = d.r;
   } else if (job.type === 'idx') {
     const o = S.idx.find(x => x.t === job.t); if (o) { o.p=d.p; o.c=d.c; o.r=d.r; }
-  } else if (job.type === 'kr') {
-    const o = S.kr.find(x => x.t === job.t);  if (o) { o.p=d.p; o.c=d.c; o.r=d.r; o._live=true; }
-  } else if (job.type === 'us') {
-    const o = S.us.find(x => x.t === job.t);  if (o) { o.p=d.p; o.c=d.c; o.r=d.r; o._live=true; }
   }
 }
 
@@ -735,43 +827,39 @@ async function doRefresh() {
   btn.disabled = true; btn.textContent = '로딩 중…';
   progShow();
 
+  // ── ① 보유종목 · 현재가 · 수익률 (토스증권 실시간, 최우선 반영)
+  progSet(5, '내 보유종목 동기화 중…');
+  await loadHoldings();
+  progSet(15, '내 보유종목 동기화 완료');
+
+  // ── ② 시장 개요(환율)·주요 지수만 별도 갱신 (보유종목은 위에서 이미 실시간 반영됨)
   const jobs = [
     {type:'usd', t:'KRW=X',    lbl:'USD/KRW 환율'},
     {type:'jpy', t:'JPYKRW=X', lbl:'JPY/KRW 환율'},
-    ...S.idx.map(x=>({type:'idx', t:x.t, lbl:x.n})),
-    ...S.kr.map(x=>({type:'kr',  t:x.t, lbl:x.n})),
-    ...S.us.map(x=>({type:'us',  t:x.t, lbl:x.n}))
+    ...S.idx.map(x=>({type:'idx', t:x.t, lbl:x.n}))
   ];
   const total = jobs.length;
 
-  // ── 1차 전체 순회
   let n = 0;
   const failed = [];
   for (const job of jobs) {
-    await sleep(300);
-    progSet((n / total) * 100, `${job.lbl} 업데이트 중… (${n + 1}/${total})`);
+    await sleep(250);
+    progSet(15 + (n / total) * 75, `${job.lbl} 업데이트 중… (${n + 1}/${total})`);
     const d = await getStockData(job.t);
     n++;
-    if (!d) { failed.push(job); progSet((n / total) * 100, `${job.lbl} — 건너뜀`); continue; }
+    if (!d) { failed.push(job); continue; }
     applyJob(job, d);
     renderAll();
   }
 
-  // ── 2차 실패 항목 재시도
   if (failed.length > 0) {
-    progSet(100, `⚠️ ${failed.length}개 실패 — 재시도 중…`);
-    $('rfProgBar').style.background = 'linear-gradient(90deg,#f59e0b,#fcd34d)';
-    await sleep(1000);
-    let retried = 0;
+    progSet(95, `⚠️ ${failed.length}개 실패 — 재시도 중…`);
     for (const job of failed) {
-      await sleep(600);
-      progSet(100, `재시도: ${job.lbl} (${++retried}/${failed.length})`);
+      await sleep(400);
       const d = await getStockData(job.t);
-      if (!d) { progSet(100, `${job.lbl} — 재시도 실패`); await sleep(400); continue; }
+      if (!d) continue;
       applyJob(job, d);
       renderAll();
-      progSet(100, `✔ ${job.lbl} 성공`);
-      await sleep(300);
     }
   }
 
@@ -784,7 +872,7 @@ async function doRefresh() {
 
   await progDone(`✅ 업데이트 완료 — ${ts}`);
 
-  // 공시·뉴스도 함께 갱신
+  // 공시·뉴스도 함께 갱신 (기존 방식 그대로 — 보유종목명 기준으로 자동 반영)
   loadCompanyNews();
   loadNews();
 }
@@ -827,7 +915,7 @@ async function loadCompanyNews() {
   const ready = await whenCowork(12000);
 
   if (!ready) {
-    // ── 웹 버전: Netlify news 함수로 최신 뉴스 배치 fetch ──
+    // ── 웹 버전: news 함수로 최신 뉴스 배치 fetch ──
     try {
       const items = await fetchNaverNewsBatch();
       if (Array.isArray(items) && items.length) {
@@ -842,8 +930,7 @@ async function loadCompanyNews() {
   // ── Cowork 버전 ──
   const targets = [
     ...S.kr.map(x => x.n),
-    'NVDA 엔비디아',
-    'SpaceX SPCX'
+    ...S.us.map(x => x.n)
   ];
   const allItems = [];
   for (const name of targets) {
@@ -879,7 +966,7 @@ async function loadNews() {
   const ready = await whenCowork(12000);
 
   if (!ready) {
-    // ── 웹 버전: Netlify news 함수로 최신 코스피 뉴스 ──
+    // ── 웹 버전: news 함수로 최신 코스피 뉴스 ──
     try {
       const items = await fetchNaverNews('코스피 증시 시황', 8);
       if (Array.isArray(items) && items.length) {
@@ -909,13 +996,12 @@ async function loadNews() {
 }
 
 // ════════════════════════════════════════════════════
-// INIT — 시드로 즉시 렌더, 공시·뉴스는 백그라운드 로드
+// INIT — 시드로 즉시 렌더 후, 보유종목·공시·뉴스는 백그라운드 로드
 // ════════════════════════════════════════════════════
 function init() {
   renderAll();
-  // 공시와 뉴스는 백그라운드에서 비동기 로드 (주가 새로고침과 독립적으로)
-  loadCompanyNews();
-  loadNews();
+  // 보유종목(토스증권 실시간), 공시, 뉴스는 백그라운드에서 비동기 로드
+  loadHoldings().then(() => { renderAll(); loadCompanyNews(); loadNews(); });
 }
 
 if (document.readyState === 'loading') {
