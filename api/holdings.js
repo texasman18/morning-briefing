@@ -1,4 +1,8 @@
 module.exports = async (req, res) => {
+  if (!process.env.RELAY_URL || !process.env.RELAY_SECRET) {
+    res.status(503).json({ error: 'relay-not-configured', message: 'RELAY_URL / RELAY_SECRET 환경변수가 설정되지 않았습니다.' });
+    return;
+  }
   try {
     const r = await fetch(process.env.RELAY_URL + '/holdings', {
       headers: { 'x-relay-secret': process.env.RELAY_SECRET },

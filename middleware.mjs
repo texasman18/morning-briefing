@@ -10,6 +10,22 @@ export const config = {
 
 const COOKIE_NAME = 'mb_auth';
 
+// 쿠키에는 자격증명 원문 대신 SHA-256 해시 토큰만 저장한다.
+// (기존 btoa(user:pass) 방식은 쿠키 유출 = 비밀번호 유출이었음)
+async function authToken(user, pass) {
+  const data = new TextEncoder().encode('mb-v2:' + user + ':' + pass);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// 고정 길이 hex 문자열 비교 (타이밍 차이 최소화)
+function safeEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 function getCookie(request, name) {
   const cookie = request.headers.get('cookie') || '';
   const match = cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
@@ -59,32 +75,25 @@ export default async function middleware(request) {
       return loginPage(true);
     }
 
-    if (user === validUser && pass === validPass) {
-      const token = btoa(user + ':' + pass);
+    if (safeEqual(user, validUser) && safeEqual(pass, validPass)) {
+      const token = await authToken(validUser, validPass);
       return new Response(null, {
         status: 302,
         headers: {
           Location: '/',
-          'Set-Cookie': COOKIE_NAME + '=' + encodeURIComponent(token) + '; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000',
+          'Set-Cookie': COOKIE_NAME + '=' + token + '; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000',
         },
       });
     }
     return loginPage(true);
   }
 
-  // 쿠키 검증
+  // 쿠키 검증 — 저장된 해시 토큰과 대조 (구버전 btoa 쿠키는 자동으로 불일치 → 재로그인)
   const cookieVal = getCookie(request, COOKIE_NAME);
   if (cookieVal) {
-    try {
-      const decoded = atob(cookieVal);
-      const sep = decoded.indexOf(':');
-      const user = sep >= 0 ? decoded.slice(0, sep) : decoded;
-      const pass = sep >= 0 ? decoded.slice(sep + 1) : '';
-      if (user === validUser && pass === validPass) {
-        return next();
-      }
-    } catch (e) {
-      // fallthrough to login page
+    const expected = await authToken(validUser, validPass);
+    if (safeEqual(cookieVal, expected)) {
+      return next();
     }
   }
 
